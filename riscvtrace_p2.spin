@@ -86,8 +86,11 @@ x13		call	#ser_init
 x14		call	#jit_init
 x15		jmp	#init_vectors
 
-x16		long	0[16]
-
+x16		long	0
+x17		long	0
+x18		long	0
+x19		long	0
+x20		long	0[12]
 		'' these registers must immediately follow x0-x31
 x32
 opcode		long	0
@@ -382,7 +385,9 @@ testbit_instr
 		test	0-0, #1 wc
 testpin_instr
 		testp	0-0 wc
-		
+
+		'' NOTE: the "call" pattern below is used in several
+		'' places
 imp_illegal
 		call	#\illegal_instr_error
 
@@ -476,7 +481,6 @@ CONDMASK	long	$f0000000
 csrrw
 		jmp	#\hub_compile_csrw
 
-
 coginit_pattern
 		mov	temp, 0-0	' rs1
 		setq	0-0   		' rs3
@@ -555,14 +559,14 @@ swlongdata	wrlong	0, storeop
 		long	@illegalinstr
 		long	@illegalinstr
 
-systab		jmp	#\illegalinstr
+systab		long	@hub_syspriv
 		mov	0,csrrw
 		or	0,csrrw
 		andn	0,csrrw
-		jmp	#\illegalinstr
-		jmp	#\illegalinstr
-		jmp	#\illegalinstr
-		jmp	#\illegalinstr
+		long	@illegalinstr
+		mov	0,#csrrw	' csrrwi
+		or	0,#csrrw	' csrrsi
+		andn	0,#csrrw	' csrrci
 
 custom0tab
 		long	@illegalinstr
@@ -1083,7 +1087,6 @@ c_illegalinstr
 		add	immval, #2
 		jmp	#do_illegal
 		
-sysinstr
 illegalinstr
 hub_illegalinstr
 		mov	immval, ptrb
@@ -1449,7 +1452,33 @@ hub_singledestinstr
 	if_nc	jmp	#emit1
 		jmp	#emit2
 
+		'' privileged instruction compilation code
+hub_syspriv
+		cmp	rd, #0 wz
+	if_nz	jmp	#illegalinstr
+		cmp	immval, #0 wz
+	if_z	jmp	#compile_ecall
+		cmp	immval, #1 wz
+	if_z	jmp	#compile_ebreak
+		andn	immval, #$1f
+		cmp	immval, #%0001001_00000 wz
+	if_z	jmp	#compile_sfence
+		jmp	#illegalinstr
 
+compile_sfence
+		ret	' for now, do nothing
+compile_ebreak
+		jmp	#illegalinstr	' someday make this different
+compile_ecall
+		mov	opdata, imp_illegal
+		andn	opdata, loc_mask
+		or	opdata, ##@ecall_func
+		jmp	#emit_opdata_and_ret
+	
+		''
+		''
+		'' code for compiling compressed instructions
+		''
 hub_compressed_instr
 		sub	ptrb, #2	' adjust for compressed instruction
 		andn	opcode, SIGNWORD wz
@@ -1841,5 +1870,74 @@ c_bnez
 		
 		mov	jit_branch_dest, immval
 		jmp	#jit_emit_direct_branch
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+'' System call facilities
+'' called with:
+''  x17 == function to use
+''  x10, x11, x12, ... = arguments
+''  x10 == result (negative for error)
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+#define ENOENT  2
+#define EIO     5
+#define EBADF   9
+#define ENOMEM 12
+#define EACCES 13
+#define ENFILE 23
+#define ENOTTY 25
+#define ENOSYS 88
+
+#define ECALL_CLOSE     57
+#define ECALL_READ      63
+#define ECALL_WRITE     64
+#define ECALL_FSTAT	80
+#define ECALL_EXIT	93
+#define ECALL_TIMES	153
+#define ECALL_GETTIMEOFDAY 169
+#define ECALL_OPEN 1024
+#define ECALL_TIME 1062
+
+ecall_func
+		cmp	x17, #ECALL_WRITE wz
+	if_z	jmp	#syscall_write
+		cmp	x17, #ECALL_READ wz
+	if_z	jmp	#syscall_read
+		neg	x10, #ENOSYS
+		ret
+syscall_write
+		' x10 == handle (0=stdin, 1=stdout, 2=stderr)
+		' x11 == data buf
+		' x12 == count of bytes
+		cmp	x10, #3 wcz
+	if_ae	neg	x10, #EBADF
+	if_ae	ret
+		mov	x10, x12	wz
+	if_z	ret
+writelp
+		rdbyte	uart_char, x11
+		add	x11, #1
+		call	#ser_tx
+		djnz	x12, #writelp
+		ret
 		
+syscall_read
+		' x10 == handle (0=stdin, 1=stdout, 2=stderr)
+		' x11 == data buf
+		' x12 == count of bytes
+		cmp	x10, #3 wcz
+	if_ae	neg	x10, #EBADF
+	if_ae	ret
+		mov	x10, #0
+doread
+		call	#\ser_rx
+		cmps	uart_char, #0 wcz
+	if_b	ret
+		wrbyte	uart_char, x11
+		add	x11, #1
+		add	x10, #1
+		djnz	x12, #doread
+		ret
+		
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
 		orgh	$4000

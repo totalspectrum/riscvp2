@@ -24,6 +24,7 @@ CC=$(BINPREFIX)gcc
 P2SRCS=riscvtrace_p2.spin jit/jit_engine.spinh jit/util_serial.spin2
 EMUOBJS=rvp2.o rvp2_lut.o
 LDSCRIPTS=riscvp2.ld riscvp2_lut.ld
+ASMSCRIPTS=rvp2.s rvp2_lut.s
 
 default: $(EMUOBJS) $(LDSCRIPTS)
 
@@ -35,6 +36,12 @@ riscvp2.ld: ldscript.templ
 
 riscvp2_lut.ld: ldscript.templ
 	sed "s^%LIBROOT%^$(LIBROOT)^g;s^%EMULATOR%^rvp2_lut.o^g" < ldscript.templ > $@
+
+rvp2.s: asm.templ p2trace.bin
+	sed "s^%BINFILE%^p2trace.bin^g" < asm.templ > $@
+
+rvp2_lut.s: asm.templ p2lut.bin
+	sed "s^%BINFILE%^p2lut.bin^g" < asm.templ > $@
 
 rvp2.o: rvp2.s p2trace.bin
 	$(CC) -o $@ -c $<
@@ -51,11 +58,10 @@ p2lut.bin: $(P2SRCS)
 
 
 hello.elf: hello.c
-	$(CC) -T riscvp2.ld -o hello.elf hello.c -lc -lgloss
+	$(CC) -T riscvp2.ld -specs=nano.specs -o hello.elf hello.c -lc -lgloss
 
 hello.binary: hello.elf
 	$(BINPREFIX)objcopy -O binary $< $@
 
 clean:
-	rm -f *.binary *.bin *.o $(LDSCRIPTS)
-
+	rm -f *.binary *.bin *.elf *.o $(LDSCRIPTS) $(ASMSCRIPTS)

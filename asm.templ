@@ -2,15 +2,16 @@
 	# simple asm file to include the P2 JIT compiler
 	#
 	.section .interp, "a"
-	.globl _emustart
-	.globl _emuend
-_emustart:	
-	.incbin "p2trace.bin"
-_emuend:	
+	.globl _interpstart
+_interpstart:	
+	.incbin "%BINFILE%"
 	
 
 	.text
-	.align	2
+	.globl	_riscv_start
+_riscv_start:
+	j	_start
+	
 	.globl _sbrk
 	.globl _end
 _sbrk:
