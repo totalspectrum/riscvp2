@@ -1,3 +1,5 @@
 *~
 *.o
 *.bin
+riscvp2.ld
+riscvp2_lut.ld
