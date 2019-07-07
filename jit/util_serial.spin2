@@ -1,0 +1,93 @@
+
+	''
+	'' serial port utility routines
+	''
+	'' these can go in HUB memory or LUT memory, and probably
+	'' should do so: but beware, any XBYTE based interpreter
+	'' must save/restore the rdfast ptr if it uses HUBEXEC
+	''
+	'' the upper level must define:
+	'' _CLOCK_MODE = P2 clock setting mode
+	'' _CYCLES_PER_SEC = P2 frequency
+	'' _BAUD = baud rate to use
+CON
+
+_CLOCK_MODE=$010007f8
+_CYCLES_PER_SEC=160_000_000
+
+  BAUD=230_400
+  RX_PIN = 63
+  TX_PIN = 62
+
+  '' smart pin modes
+  _txmode       = %0000_0000_000_0000000000000_01_11110_0 'async tx mode, output enabled for smart output
+  _rxmode       = %0000_0000_000_0000000000000_00_11111_0 'async rx mode, input  enabled for smart input
+
+DAT
+
+		' initialize the serial system using RX_PIN, TX_PIN, and BAUD
+ser_init
+		' set system clock
+		hubset	     #0
+		nop
+		hubset	##_CLOCK_MODE
+		waitx	##20_000_000/100
+		hubset	##_CLOCK_MODE | %11
+
+		mov	pa, ##7 + ((_CYCLES_PER_SEC / BAUD) << 16) ' bitperiod
+		wrpin	##_txmode, #TX_PIN
+		wxpin	pa, #TX_PIN
+		dirh	#TX_PIN
+		wrpin	##_rxmode, #RX_PIN
+		wxpin	pa, #RX_PIN
+		dirh	#RX_PIN
+
+		waitx	##_CYCLES_PER_SEC/2
+		ret
+
+		'' receive a single character into uartchar
+		'' or set it to -1 if no character available
+ser_rx
+		neg	uart_char, #1
+		testp	#RX_PIN wc
+	if_c	rdpin	uart_char, #RX_PIN
+	if_c	shr	uart_char, #24
+		ret
+
+		' print a single character (in uart_char)
+ser_tx
+		wypin	uart_char, #TX_PIN
+		waitx	#20
+.txflush
+		testp	#TX_PIN wc
+	  if_nc	jmp	#.txflush
+		ret
+
+		' print a string, pointed to by pb
+ser_str
+		rdbyte	uart_char, uart_str wz
+		add	uart_str, #1
+  if_z		ret
+  		call	#ser_tx
+		jmp	#ser_str
+
+		'' print a hex number
+		'' number is in uart_num
+		'' uses temp, uart_char, uart_num
+ser_hex
+		mov	uart_temp, #8
+.hexlp
+		getnib	uart_char, uart_num, #7
+		add	uart_char, #"0"
+		cmp	uart_char, #"9" wcz
+	if_a	add	uart_char, #("A"-"0") - 10
+		call	#ser_tx
+		rol	uart_num, #4
+		djnz	uart_temp, #.hexlp
+		mov	uart_char, #" "
+		jmp	#ser_tx
+
+ser_nl		mov	uart_char, #13
+		call	#ser_tx
+		mov	uart_char, #10
+		jmp	#ser_tx

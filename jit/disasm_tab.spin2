@@ -1,0 +1,742 @@
+disasm_tab
+	long	$00000000, $ffffffff, $00000006, @@@name_000
+	long	$00000000, $0fe00000, $00000000, @@@name_001
+	long	$00200000, $0fe00000, $00000000, @@@name_002
+	long	$00400000, $0fe00000, $00000000, @@@name_003
+	long	$00600000, $0fe00000, $00000000, @@@name_004
+	long	$00800000, $0fe00000, $00000000, @@@name_005
+	long	$00a00000, $0fe00000, $00000000, @@@name_006
+	long	$00c00000, $0fe00000, $00000000, @@@name_007
+	long	$00e00000, $0fe00000, $00000000, @@@name_008
+	long	$01000000, $0fe00000, $00000000, @@@name_009
+	long	$01200000, $0fe00000, $00000000, @@@name_010
+	long	$01400000, $0fe00000, $00000000, @@@name_011
+	long	$01600000, $0fe00000, $00000000, @@@name_012
+	long	$01800000, $0fe00000, $00000000, @@@name_013
+	long	$01a00000, $0fe00000, $00000000, @@@name_014
+	long	$01c00000, $0fe00000, $00000000, @@@name_015
+	long	$01e00000, $0fe00000, $00000000, @@@name_016
+	long	$02000000, $0fe00000, $00000000, @@@name_017
+	long	$02200000, $0fe00000, $00000000, @@@name_018
+	long	$02400000, $0fe00000, $00000000, @@@name_019
+	long	$02600000, $0fe00000, $00000000, @@@name_020
+	long	$02800000, $0fe00000, $00000000, @@@name_021
+	long	$02a00000, $0fe00000, $00000000, @@@name_022
+	long	$02c00000, $0fe00000, $00000000, @@@name_023
+	long	$02e00000, $0fe00000, $00000000, @@@name_024
+	long	$03000000, $0fe00000, $00000000, @@@name_025
+	long	$03200000, $0fe00000, $00000000, @@@name_026
+	long	$03400000, $0fe00000, $00000000, @@@name_027
+	long	$03600000, $0fe00000, $00000000, @@@name_028
+	long	$03800000, $0fe00000, $00000000, @@@name_029
+	long	$03a00000, $0fe00000, $00000000, @@@name_030
+	long	$03c00000, $0fe00000, $00000000, @@@name_031
+	long	$03e00000, $0fe00000, $00000000, @@@name_032
+	long	$04000000, $0fe00000, $00000000, @@@name_033
+	long	$04200000, $0fe00000, $00000000, @@@name_034
+	long	$04000000, $0fe00000, $00000000, @@@name_035
+	long	$04200000, $0fe00000, $00000000, @@@name_036
+	long	$04400000, $0fe00000, $00000000, @@@name_037
+	long	$04600000, $0fe00000, $00000000, @@@name_038
+	long	$04800000, $0fe00000, $00000000, @@@name_039
+	long	$04a00000, $0fe00000, $00000000, @@@name_040
+	long	$04c00000, $0fe00000, $00000000, @@@name_041
+	long	$04e00000, $0fe00000, $00000000, @@@name_042
+	long	$05000000, $0fe00000, $00000000, @@@name_043
+	long	$05200000, $0fe00000, $00000000, @@@name_044
+	long	$05400000, $0fe00000, $00000000, @@@name_045
+	long	$05600000, $0fe00000, $00000000, @@@name_046
+	long	$05800000, $0fe00000, $00000000, @@@name_047
+	long	$05a00000, $0fe00000, $00000000, @@@name_048
+	long	$05c00000, $0fe00000, $00000000, @@@name_049
+	long	$05e00000, $0fe00000, $00000000, @@@name_050
+	long	$06000000, $0fe00000, $00000000, @@@name_051
+	long	$06200000, $0fe00000, $00000000, @@@name_052
+	long	$06400000, $0fe00000, $00000000, @@@name_053
+	long	$06600000, $0fe00000, $00000000, @@@name_054
+	long	$06800000, $0fe00000, $00000000, @@@name_055
+	long	$06a00000, $0fe00000, $00000000, @@@name_056
+	long	$06c00000, $0fe00000, $00000000, @@@name_057
+	long	$06e00000, $0fe00000, $00000000, @@@name_058
+	long	$07000000, $0fe00000, $00000000, @@@name_059
+	long	$07200000, $0fe00000, $00000000, @@@name_060
+	long	$07400000, $0fe00000, $00000000, @@@name_061
+	long	$07600000, $0fe00000, $00000000, @@@name_062
+	long	$07800000, $0fe00000, $00000000, @@@name_063
+	long	$07a00000, $0fe00000, $00000000, @@@name_064
+	long	$07c00000, $0fe00000, $00000000, @@@name_065
+	long	$07e00000, $0fe00000, $00000000, @@@name_066
+	long	$08000000, $0ff80000, $00000000, @@@name_067
+	long	$08400000, $0ff80000, $00000000, @@@name_068
+	long	$08800000, $0ff80000, $00000000, @@@name_069
+	long	$08c00000, $0ff80000, $00000000, @@@name_070
+	long	$08e00000, $0ff80000, $00000000, @@@name_071
+	long	$09000000, $0ff80000, $00000000, @@@name_072
+	long	$09200000, $0ff80000, $00000000, @@@name_073
+	long	$09300000, $0ff80000, $00000000, @@@name_074
+	long	$09400000, $0ff80000, $00000000, @@@name_075
+	long	$09500000, $0ff80000, $00000000, @@@name_076
+	long	$09580000, $0ff80000, $00000000, @@@name_077
+	long	$09600000, $0ff80000, $00000000, @@@name_078
+	long	$09680000, $0ff80000, $00000000, @@@name_079
+	long	$09700000, $0ff80000, $00000000, @@@name_080
+	long	$09780000, $0ff80000, $00000000, @@@name_081
+	long	$09800000, $0ff80000, $00000000, @@@name_082
+	long	$09880000, $0ff80000, $00000000, @@@name_083
+	long	$09900000, $0ff80000, $00000000, @@@name_084
+	long	$09980000, $0ff80000, $00000000, @@@name_085
+	long	$09a00000, $0ff80000, $00000000, @@@name_086
+	long	$09a80000, $0ff80000, $00000000, @@@name_087
+	long	$09b00000, $0ff80000, $00000000, @@@name_088
+	long	$09b80000, $0ff80000, $00000000, @@@name_089
+	long	$09c00000, $0ff80000, $00000000, @@@name_090
+	long	$09c80000, $0ff80000, $00000000, @@@name_091
+	long	$09d00000, $0ff80000, $00000000, @@@name_092
+	long	$09d80000, $0ff80000, $00000000, @@@name_093
+	long	$09e00000, $0ff80000, $00000000, @@@name_094
+	long	$09e80000, $0ff80000, $00000000, @@@name_095
+	long	$09f00000, $0ff80000, $00000000, @@@name_096
+	long	$09f80000, $0ff80000, $00000000, @@@name_097
+	long	$0a000000, $0ff00000, $00000000, @@@name_098
+	long	$0a100000, $0ff00000, $00000000, @@@name_099
+	long	$0a200000, $0ff00000, $00000000, @@@name_100
+	long	$0a300000, $0ff00000, $00000000, @@@name_101
+	long	$0a400000, $0ff80000, $00000000, @@@name_102
+	long	$0a480000, $0ff80000, $00000000, @@@name_103
+	long	$0a500000, $0ff80000, $00000000, @@@name_104
+	long	$0a580000, $0ff80000, $00000000, @@@name_105
+	long	$0a600000, $0ff80000, $00000000, @@@name_106
+	long	$0a680000, $0ff80000, $00000000, @@@name_107
+	long	$0a700000, $0ff80000, $00000000, @@@name_108
+	long	$0a780000, $0ff80000, $00000005, @@@name_109
+	long	$0a800000, $0fe80000, $00000000, @@@name_110
+	long	$0a880000, $0fe80000, $00000000, @@@name_111
+	long	$0aa00000, $0fe00000, $00000000, @@@name_112
+	long	$0ac00000, $0fe00000, $00000005, @@@name_113
+	long	$0ae00000, $0fe00000, $00000005, @@@name_114
+	long	$0b000000, $0fe00000, $00000005, @@@name_115
+	long	$0b200000, $0ff80000, $00000000, @@@name_116
+	long	$0b3bffff, $0fffffff, $00000006, @@@name_117
+	long	$0b3bfff5, $0fffffff, $00000006, @@@name_118
+	long	$0b3bfff3, $0fffffff, $00000006, @@@name_119
+	long	$0b3bfff1, $0fffffff, $00000006, @@@name_120
+	long	$0b3bfdff, $0fffffff, $00000006, @@@name_121
+	long	$0b3be9f5, $0fffffff, $00000006, @@@name_122
+	long	$0b3be5f3, $0fffffff, $00000006, @@@name_123
+	long	$0b3be1f1, $0fffffff, $00000006, @@@name_124
+	long	$0b400000, $0ff80000, $00000000, @@@name_125
+	long	$0b500000, $0ff80000, $00000000, @@@name_126
+	long	$0b600000, $0ff80000, $00000000, @@@name_127
+	long	$0b680000, $0ff80000, $00000000, @@@name_128
+	long	$0b700000, $0ff80000, $00000000, @@@name_129
+	long	$0b780000, $0ff80000, $00000000, @@@name_130
+	long	$0b800000, $0ff80000, $00000000, @@@name_131
+	long	$0b880000, $0ff80000, $00000000, @@@name_132
+	long	$0b900000, $0ff80000, $00000000, @@@name_133
+	long	$0b980000, $0ff80000, $00000000, @@@name_134
+	long	$0ba00000, $0ff80000, $00000000, @@@name_135
+	long	$0ba80000, $0ff80000, $00000000, @@@name_136
+	long	$0bb00000, $0ff80000, $00000000, @@@name_137
+	long	$0bb80000, $0ff80000, $00000000, @@@name_138
+	long	$0bc00000, $0ff80000, $00000000, @@@name_139
+	long	$0bc80000, $0ff80000, $00000000, @@@name_140
+	long	$0bc80200, $0ff80000, $00000000, @@@name_141
+	long	$0bc80400, $0ff80000, $00000000, @@@name_142
+	long	$0bc80600, $0ff80000, $00000000, @@@name_143
+	long	$0bc80800, $0ff80000, $00000000, @@@name_144
+	long	$0bc80a00, $0ff80000, $00000000, @@@name_145
+	long	$0bc80c00, $0ff80000, $00000000, @@@name_146
+	long	$0bc80e00, $0ff80000, $00000000, @@@name_147
+	long	$0bc81000, $0ff80000, $00000000, @@@name_148
+	long	$0bc81200, $0ff80000, $00000000, @@@name_149
+	long	$0bc81400, $0ff80000, $00000000, @@@name_150
+	long	$0bc81600, $0ff80000, $00000000, @@@name_151
+	long	$0bc81800, $0ff80000, $00000000, @@@name_152
+	long	$0bc81a00, $0ff80000, $00000000, @@@name_153
+	long	$0bc81c00, $0ff80000, $00000000, @@@name_154
+	long	$0bc81e00, $0ff80000, $00000000, @@@name_155
+	long	$0bc82000, $0ff80000, $00000000, @@@name_156
+	long	$0bc82200, $0ff80000, $00000000, @@@name_157
+	long	$0bc82400, $0ff80000, $00000000, @@@name_158
+	long	$0bc82600, $0ff80000, $00000000, @@@name_159
+	long	$0bc82800, $0ff80000, $00000000, @@@name_160
+	long	$0bc82a00, $0ff80000, $00000000, @@@name_161
+	long	$0bc82c00, $0ff80000, $00000000, @@@name_162
+	long	$0bc82e00, $0ff80000, $00000000, @@@name_163
+	long	$0bc83000, $0ff80000, $00000000, @@@name_164
+	long	$0bc83200, $0ff80000, $00000000, @@@name_165
+	long	$0bc83400, $0ff80000, $00000000, @@@name_166
+	long	$0bc83600, $0ff80000, $00000000, @@@name_167
+	long	$0bc83800, $0ff80000, $00000000, @@@name_168
+	long	$0bc83a00, $0ff80000, $00000000, @@@name_169
+	long	$0bc83c00, $0ff80000, $00000000, @@@name_170
+	long	$0bc83e00, $0ff80000, $00000000, @@@name_171
+	long	$0bf00000, $0ff80000, $00000000, @@@name_172
+	long	$0c000000, $0ff80000, $00000000, @@@name_173
+	long	$0c080200, $0ff80000, $00000004, @@@name_174
+	long	$0c100000, $0ff80000, $00000000, @@@name_175
+	long	$0c200000, $0ff80000, $00000000, @@@name_176
+	long	$0c300000, $0ff80000, $00000000, @@@name_177
+	long	$0c400000, $0ff80000, $00000005, @@@name_178
+	long	$0c500000, $0ff80000, $00000005, @@@name_179
+	long	$0c600000, $0ff80000, $00000005, @@@name_180
+	long	$0c600161, $0ff80000, $00000000, @@@name_181
+	long	$0c6001e1, $0ff80000, $00000000, @@@name_182
+	long	$0c700000, $0ff80000, $00000000, @@@name_183
+	long	$0c800000, $0ff80000, $00000000, @@@name_184
+	long	$0c900000, $0ff80000, $00000000, @@@name_185
+	long	$0ca00000, $0ff80000, $00000000, @@@name_186
+	long	$0cac0000, $0fffffff, $00000006, @@@name_187
+	long	$0cb00000, $0ff80000, $00000000, @@@name_188
+	long	$0cc00000, $0ff80000, $00000000, @@@name_189
+	long	$0cd00000, $0ff80000, $00000000, @@@name_190
+	long	$0ce00000, $0fe80000, $00000000, @@@name_191
+	long	$0d000000, $0ff80000, $00000000, @@@name_192
+	long	$0d100000, $0ff80000, $00000000, @@@name_193
+	long	$0d200000, $0ff80000, $00000000, @@@name_194
+	long	$0d300000, $0ff80000, $00000000, @@@name_195
+	long	$0d400000, $0ff80000, $00000000, @@@name_196
+	long	$0d500000, $0ff80000, $00000000, @@@name_197
+	long	$0d600000, $0ff801ff, $00000003, @@@name_198
+	long	$0d600001, $0fe801ff, $00000003, @@@name_199
+	long	$0d600003, $0ff801ff, $00000003, @@@name_200
+	long	$0d600004, $0fe801ff, $00000003, @@@name_201
+	long	$0d600005, $0ff801ff, $00000003, @@@name_202
+	long	$0d600006, $0fe801ff, $00000003, @@@name_203
+	long	$0d600007, $0fe801ff, $00000003, @@@name_204
+	long	$0d60000e, $0ff801ff, $00000003, @@@name_205
+	long	$0d60000f, $0ff801ff, $00000003, @@@name_206
+	long	$0d600010, $0fe001ff, $00000003, @@@name_207
+	long	$0d600011, $0fe001ff, $00000003, @@@name_208
+	long	$0d600012, $0fe001ff, $00000003, @@@name_209
+	long	$0d600013, $0fe001ff, $00000003, @@@name_210
+	long	$0d600014, $0fe001ff, $00000003, @@@name_211
+	long	$0d600015, $0ff801ff, $00000003, @@@name_212
+	long	$0d600016, $0ff801ff, $00000003, @@@name_213
+	long	$0d600017, $0ff801ff, $00000003, @@@name_214
+	long	$0d600018, $0fe001ff, $00000003, @@@name_215
+	long	$0d600019, $0fe001ff, $00000003, @@@name_216
+	long	$0d60001a, $0ff801ff, $00000003, @@@name_217
+	long	$0d60001b, $0fe001ff, $00000003, @@@name_218
+	long	$0d60001c, $0ff801ff, $00000003, @@@name_219
+	long	$0d60001d, $0ff801ff, $00000003, @@@name_220
+	long	$0d60001e, $0ff801ff, $00000003, @@@name_221
+	long	$0d60001f, $0fe001ff, $00000003, @@@name_222
+	long	$0d600020, $0ff801ff, $00000003, @@@name_223
+	long	$0d600021, $0ff801ff, $00000003, @@@name_224
+	long	$0d600022, $0ff801ff, $00000003, @@@name_225
+	long	$0d600023, $0ff801ff, $00000003, @@@name_226
+	long	$0d600024, $0fffffff, $00000006, @@@name_227
+	long	$0d600224, $0fffffff, $00000006, @@@name_228
+	long	$0d600424, $0fffffff, $00000006, @@@name_229
+	long	$0d600624, $0fffffff, $00000006, @@@name_230
+	long	$0d600824, $0fffffff, $00000006, @@@name_231
+	long	$0d600a24, $0fffffff, $00000006, @@@name_232
+	long	$0d600c24, $0fffffff, $00000006, @@@name_233
+	long	$0d600e24, $0fffffff, $00000006, @@@name_234
+	long	$0d601024, $0fffffff, $00000006, @@@name_235
+	long	$0d601224, $0fffffff, $00000006, @@@name_236
+	long	$0d601424, $0fffffff, $00000006, @@@name_237
+	long	$0d601624, $0fffffff, $00000006, @@@name_238
+	long	$0d601824, $0fffffff, $00000006, @@@name_239
+	long	$0d601a24, $0fffffff, $00000006, @@@name_240
+	long	$0d601c24, $0fffffff, $00000006, @@@name_241
+	long	$0d601e24, $0fffffff, $00000006, @@@name_242
+	long	$0d602024, $0fffffff, $00000006, @@@name_243
+	long	$0d602224, $0fffffff, $00000006, @@@name_244
+	long	$0d602424, $0fffffff, $00000006, @@@name_245
+	long	$0d602624, $0fffffff, $00000006, @@@name_246
+	long	$0d602824, $0fffffff, $00000006, @@@name_247
+	long	$0d602a24, $0fffffff, $00000006, @@@name_248
+	long	$0d602c24, $0fffffff, $00000006, @@@name_249
+	long	$0d602e24, $0fffffff, $00000006, @@@name_250
+	long	$0d603024, $0fffffff, $00000006, @@@name_251
+	long	$0d603224, $0fffffff, $00000006, @@@name_252
+	long	$0d603424, $0fffffff, $00000006, @@@name_253
+	long	$0d603624, $0fffffff, $00000006, @@@name_254
+	long	$0d603824, $0fffffff, $00000006, @@@name_255
+	long	$0d603a24, $0fffffff, $00000006, @@@name_256
+	long	$0d603c24, $0fffffff, $00000006, @@@name_257
+	long	$0d604024, $0fffffff, $00000006, @@@name_258
+	long	$0d604224, $0fffffff, $00000006, @@@name_259
+	long	$0d604424, $0fffffff, $00000006, @@@name_260
+	long	$0d604624, $0fffffff, $00000006, @@@name_261
+	long	$0d604824, $0fffffff, $00000006, @@@name_262
+	long	$0d604a24, $0fffffff, $00000006, @@@name_263
+	long	$0d604c24, $0fffffff, $00000006, @@@name_264
+	long	$0d604e24, $0fffffff, $00000006, @@@name_265
+	long	$0d600025, $0ff801ff, $00000003, @@@name_266
+	long	$0d600026, $0ff801ff, $00000003, @@@name_267
+	long	$0d600027, $0ff801ff, $00000003, @@@name_268
+	long	$0d600028, $0ff801ff, $00000003, @@@name_269
+	long	$0d600029, $0ff801ff, $00000003, @@@name_270
+	long	$0d60002a, $0ff801ff, $00000003, @@@name_271
+	long	$0d60002b, $0fe001ff, $00000003, @@@name_272
+	long	$0d60002c, $0fe001ff, $00000003, @@@name_273
+	long	$0d60002d, $0fe001ff, $00000003, @@@name_274
+	long	$0d64002d, $0fffffff, $00000006, @@@name_275
+	long	$0d60002e, $0fe001ff, $00000003, @@@name_276
+	long	$0d64002e, $0fffffff, $00000006, @@@name_277
+	long	$0d60002f, $0fe001ff, $00000003, @@@name_278
+	long	$0d64002f, $0fffffff, $00000006, @@@name_279
+	long	$0d600030, $0ff801ff, $00000003, @@@name_280
+	long	$0d600031, $0ff801ff, $00000003, @@@name_281
+	long	$0d600032, $0ff801ff, $00000003, @@@name_282
+	long	$0d600033, $0ff801ff, $00000003, @@@name_283
+	long	$0d600034, $0ff801ff, $00000003, @@@name_284
+	long	$0d600035, $0fe001ff, $00000003, @@@name_285
+	long	$0d600036, $0ff801ff, $00000003, @@@name_286
+	long	$0d600037, $0ff801ff, $00000003, @@@name_287
+	long	$0d640037, $0fffffff, $00000006, @@@name_288
+	long	$0d640237, $0fffffff, $00000006, @@@name_289
+	long	$0d600038, $0ff801ff, $00000003, @@@name_290
+	long	$0d600039, $0ff801ff, $00000003, @@@name_291
+	long	$0d60003a, $0ff801ff, $00000003, @@@name_292
+	long	$0d60003b, $0ff801ff, $00000003, @@@name_293
+	long	$0d60003c, $0ff801ff, $00000003, @@@name_294
+	long	$0d60003d, $0ff801ff, $00000003, @@@name_295
+	long	$0d60003e, $0ff801ff, $00000003, @@@name_296
+	long	$0d60003f, $0ff801ff, $00000003, @@@name_297
+	long	$0d600040, $0fe001ff, $00000003, @@@name_298
+	long	$0d600041, $0fe001ff, $00000003, @@@name_299
+	long	$0d600040, $0fe001ff, $00000003, @@@name_300
+	long	$0d600041, $0fe001ff, $00000003, @@@name_301
+	long	$0d600042, $0fe001ff, $00000003, @@@name_302
+	long	$0d600043, $0fe001ff, $00000003, @@@name_303
+	long	$0d600044, $0fe001ff, $00000003, @@@name_304
+	long	$0d600045, $0fe001ff, $00000003, @@@name_305
+	long	$0d600046, $0fe001ff, $00000003, @@@name_306
+	long	$0d600047, $0fe001ff, $00000003, @@@name_307
+	long	$0d600048, $0fe001ff, $00000003, @@@name_308
+	long	$0d600049, $0fe001ff, $00000003, @@@name_309
+	long	$0d60004a, $0fe001ff, $00000003, @@@name_310
+	long	$0d60004b, $0fe001ff, $00000003, @@@name_311
+	long	$0d60004c, $0fe001ff, $00000003, @@@name_312
+	long	$0d60004d, $0fe001ff, $00000003, @@@name_313
+	long	$0d60004e, $0fe001ff, $00000003, @@@name_314
+	long	$0d60004f, $0fe001ff, $00000003, @@@name_315
+	long	$0d600050, $0fe001ff, $00000003, @@@name_316
+	long	$0d600051, $0fe001ff, $00000003, @@@name_317
+	long	$0d600052, $0fe001ff, $00000003, @@@name_318
+	long	$0d600053, $0fe001ff, $00000003, @@@name_319
+	long	$0d600054, $0fe001ff, $00000003, @@@name_320
+	long	$0d600055, $0fe001ff, $00000003, @@@name_321
+	long	$0d600056, $0fe001ff, $00000003, @@@name_322
+	long	$0d600057, $0fe001ff, $00000003, @@@name_323
+	long	$0d600058, $0fe001ff, $00000003, @@@name_324
+	long	$0d600059, $0fe001ff, $00000003, @@@name_325
+	long	$0d60005a, $0fe001ff, $00000003, @@@name_326
+	long	$0d60005b, $0fe001ff, $00000003, @@@name_327
+	long	$0d60005c, $0fe001ff, $00000003, @@@name_328
+	long	$0d60005d, $0fe001ff, $00000003, @@@name_329
+	long	$0d60005e, $0fe001ff, $00000003, @@@name_330
+	long	$0d60005f, $0fe001ff, $00000003, @@@name_331
+	long	$0d600060, $0ff801ff, $00000003, @@@name_332
+	long	$0d600061, $0ff801ff, $00000003, @@@name_333
+	long	$0d600062, $0ff801ff, $00000003, @@@name_334
+	long	$0d600063, $0ff801ff, $00000003, @@@name_335
+	long	$0d600064, $0ff801ff, $00000003, @@@name_336
+	long	$0d600065, $0ff801ff, $00000003, @@@name_337
+	long	$0d600066, $0ff801ff, $00000003, @@@name_338
+	long	$0d600067, $0ff801ff, $00000003, @@@name_339
+	long	$0d600068, $0ff801ff, $00000003, @@@name_340
+	long	$0d600069, $0ff801ff, $00000003, @@@name_341
+	long	$0d60006a, $0fe001ff, $00000003, @@@name_342
+	long	$0d60006b, $0fe001ff, $00000003, @@@name_343
+	long	$0d60006c, $0ff801ff, $00000003, @@@name_344
+	long	$0d60006d, $0ff801ff, $00000003, @@@name_345
+	long	$0d60006e, $0ff801ff, $00000003, @@@name_346
+	long	$0d60006f, $0ff801ff, $00000003, @@@name_347
+	long	$0d64006f, $0fe00000, $00000000, @@@name_348
+	long	$0d64006f, $0fe00000, $00000000, @@@name_349
+	long	$0d64006f, $0fe00000, $00000000, @@@name_350
+	long	$0d600070, $0fe001ff, $00000003, @@@name_351
+	long	$0d600071, $0fe001ff, $00000003, @@@name_352
+	long	$0d800000, $0ff80000, $00000007, @@@name_353
+	long	$0da00000, $0ff80000, $00000007, @@@name_354
+	long	$0dc00000, $0ff80000, $00000007, @@@name_355
+	long	$0de00000, $0ff80000, $00000007, @@@name_356
+	long	$0e000000, $0f800000, $00000002, @@@name_357
+	long	$0e800000, $0f800000, $00000002, @@@name_358
+	long	$0f000000, $0f800000, $00000001, @@@name_359
+	long	$0f800000, $0f800000, $00000001, @@@name_360
+
+name_000	byte	"nop    ", 0
+name_001	byte	"ror    ", 0
+name_002	byte	"rol    ", 0
+name_003	byte	"shr    ", 0
+name_004	byte	"shl    ", 0
+name_005	byte	"rcr    ", 0
+name_006	byte	"rcl    ", 0
+name_007	byte	"sar    ", 0
+name_008	byte	"sal    ", 0
+name_009	byte	"add    ", 0
+name_010	byte	"addx   ", 0
+name_011	byte	"adds   ", 0
+name_012	byte	"addsx  ", 0
+name_013	byte	"sub    ", 0
+name_014	byte	"subx   ", 0
+name_015	byte	"subs   ", 0
+name_016	byte	"subsx  ", 0
+name_017	byte	"cmp    ", 0
+name_018	byte	"cmpx   ", 0
+name_019	byte	"cmps   ", 0
+name_020	byte	"cmpsx  ", 0
+name_021	byte	"cmpr   ", 0
+name_022	byte	"cmpm   ", 0
+name_023	byte	"subr   ", 0
+name_024	byte	"cmpsub ", 0
+name_025	byte	"fge    ", 0
+name_026	byte	"fle    ", 0
+name_027	byte	"fges   ", 0
+name_028	byte	"fles   ", 0
+name_029	byte	"sumc   ", 0
+name_030	byte	"sumnc  ", 0
+name_031	byte	"sumz   ", 0
+name_032	byte	"sumnz  ", 0
+name_033	byte	"testb  ", 0
+name_034	byte	"testbn ", 0
+name_035	byte	"bitl   ", 0
+name_036	byte	"bith   ", 0
+name_037	byte	"bitc   ", 0
+name_038	byte	"bitnc  ", 0
+name_039	byte	"bitz   ", 0
+name_040	byte	"bitnz  ", 0
+name_041	byte	"bitrnd ", 0
+name_042	byte	"bitnot ", 0
+name_043	byte	"and    ", 0
+name_044	byte	"andn   ", 0
+name_045	byte	"or     ", 0
+name_046	byte	"xor    ", 0
+name_047	byte	"muxc   ", 0
+name_048	byte	"muxnc  ", 0
+name_049	byte	"muxz   ", 0
+name_050	byte	"muxnz  ", 0
+name_051	byte	"mov    ", 0
+name_052	byte	"not    ", 0
+name_053	byte	"abs    ", 0
+name_054	byte	"neg    ", 0
+name_055	byte	"negc   ", 0
+name_056	byte	"negnc  ", 0
+name_057	byte	"negz   ", 0
+name_058	byte	"negnz  ", 0
+name_059	byte	"incmod ", 0
+name_060	byte	"decmod ", 0
+name_061	byte	"zerox  ", 0
+name_062	byte	"signx  ", 0
+name_063	byte	"encod  ", 0
+name_064	byte	"ones   ", 0
+name_065	byte	"test   ", 0
+name_066	byte	"testn  ", 0
+name_067	byte	"setnib ", 0
+name_068	byte	"getnib ", 0
+name_069	byte	"rolnib ", 0
+name_070	byte	"setbyte", 0
+name_071	byte	"getbyte", 0
+name_072	byte	"rolbyte", 0
+name_073	byte	"setword", 0
+name_074	byte	"getword", 0
+name_075	byte	"rolword", 0
+name_076	byte	"altsn  ", 0
+name_077	byte	"altgn  ", 0
+name_078	byte	"altsb  ", 0
+name_079	byte	"altgb  ", 0
+name_080	byte	"altsw  ", 0
+name_081	byte	"altgw  ", 0
+name_082	byte	"altr   ", 0
+name_083	byte	"altd   ", 0
+name_084	byte	"alts   ", 0
+name_085	byte	"altb   ", 0
+name_086	byte	"alti   ", 0
+name_087	byte	"setr   ", 0
+name_088	byte	"setd   ", 0
+name_089	byte	"sets   ", 0
+name_090	byte	"decod  ", 0
+name_091	byte	"bmask  ", 0
+name_092	byte	"crcbit ", 0
+name_093	byte	"crcnib ", 0
+name_094	byte	"muxnits", 0
+name_095	byte	"muxnibs", 0
+name_096	byte	"muxq   ", 0
+name_097	byte	"movbyts", 0
+name_098	byte	"mul    ", 0
+name_099	byte	"muls   ", 0
+name_100	byte	"sca    ", 0
+name_101	byte	"scas   ", 0
+name_102	byte	"addpix ", 0
+name_103	byte	"mulpix ", 0
+name_104	byte	"blnpix ", 0
+name_105	byte	"mixpix ", 0
+name_106	byte	"addct1 ", 0
+name_107	byte	"addct2 ", 0
+name_108	byte	"addct3 ", 0
+name_109	byte	"wmlong ", 0
+name_110	byte	"rqpin  ", 0
+name_111	byte	"rdpin  ", 0
+name_112	byte	"rdlut  ", 0
+name_113	byte	"rdbyte ", 0
+name_114	byte	"rdword ", 0
+name_115	byte	"rdlong ", 0
+name_116	byte	"calld  ", 0
+name_117	byte	"reti0  ", 0
+name_118	byte	"reti1  ", 0
+name_119	byte	"reti2  ", 0
+name_120	byte	"reti3  ", 0
+name_121	byte	"resi0  ", 0
+name_122	byte	"resi1  ", 0
+name_123	byte	"resi2  ", 0
+name_124	byte	"resi3  ", 0
+name_125	byte	"callpa ", 0
+name_126	byte	"callpb ", 0
+name_127	byte	"djz    ", 0
+name_128	byte	"djnz   ", 0
+name_129	byte	"djf    ", 0
+name_130	byte	"djnf   ", 0
+name_131	byte	"ijz    ", 0
+name_132	byte	"ijnz   ", 0
+name_133	byte	"tjz    ", 0
+name_134	byte	"tjnz   ", 0
+name_135	byte	"tjf    ", 0
+name_136	byte	"tjnf   ", 0
+name_137	byte	"tjs    ", 0
+name_138	byte	"tjns   ", 0
+name_139	byte	"tjv    ", 0
+name_140	byte	"jint   ", 0
+name_141	byte	"jct1   ", 0
+name_142	byte	"jct2   ", 0
+name_143	byte	"jct3   ", 0
+name_144	byte	"jse1   ", 0
+name_145	byte	"jse2   ", 0
+name_146	byte	"jse3   ", 0
+name_147	byte	"jse4   ", 0
+name_148	byte	"jpat   ", 0
+name_149	byte	"jfbw   ", 0
+name_150	byte	"jxmt   ", 0
+name_151	byte	"jxfi   ", 0
+name_152	byte	"jxro   ", 0
+name_153	byte	"jxrl   ", 0
+name_154	byte	"jatn   ", 0
+name_155	byte	"jqmt   ", 0
+name_156	byte	"jnint  ", 0
+name_157	byte	"jnct1  ", 0
+name_158	byte	"jnct2  ", 0
+name_159	byte	"jnct3  ", 0
+name_160	byte	"jnse1  ", 0
+name_161	byte	"jnse2  ", 0
+name_162	byte	"jnse3  ", 0
+name_163	byte	"jnse4  ", 0
+name_164	byte	"jnpat  ", 0
+name_165	byte	"jnfbw  ", 0
+name_166	byte	"jnxmt  ", 0
+name_167	byte	"jnxfi  ", 0
+name_168	byte	"jnxro  ", 0
+name_169	byte	"jnxrl  ", 0
+name_170	byte	"jnatn  ", 0
+name_171	byte	"jnqmt  ", 0
+name_172	byte	"setpat ", 0
+name_173	byte	"wrpin  ", 0
+name_174	byte	"akpin  ", 0
+name_175	byte	"wxpin  ", 0
+name_176	byte	"wypin  ", 0
+name_177	byte	"wrlut  ", 0
+name_178	byte	"wrbyte ", 0
+name_179	byte	"wrword ", 0
+name_180	byte	"wrlong ", 0
+name_181	byte	"pusha  ", 0
+name_182	byte	"pushb  ", 0
+name_183	byte	"rdfast ", 0
+name_184	byte	"wrfast ", 0
+name_185	byte	"fblock ", 0
+name_186	byte	"xinit  ", 0
+name_187	byte	"xstop  ", 0
+name_188	byte	"xzero  ", 0
+name_189	byte	"xcont  ", 0
+name_190	byte	"rep    ", 0
+name_191	byte	"coginit", 0
+name_192	byte	"qmul   ", 0
+name_193	byte	"qdiv   ", 0
+name_194	byte	"qfrac  ", 0
+name_195	byte	"qsqrt  ", 0
+name_196	byte	"qrotate", 0
+name_197	byte	"qvector", 0
+name_198	byte	"hubset ", 0
+name_199	byte	"cogid  ", 0
+name_200	byte	"cogstop", 0
+name_201	byte	"locknew", 0
+name_202	byte	"lockret", 0
+name_203	byte	"locktry", 0
+name_204	byte	"lockrel", 0
+name_205	byte	"qlog   ", 0
+name_206	byte	"qexp   ", 0
+name_207	byte	"rfbyte ", 0
+name_208	byte	"rfword ", 0
+name_209	byte	"rflong ", 0
+name_210	byte	"rfvar  ", 0
+name_211	byte	"rfvars ", 0
+name_212	byte	"wfbyte ", 0
+name_213	byte	"wfword ", 0
+name_214	byte	"wflong ", 0
+name_215	byte	"getqx  ", 0
+name_216	byte	"getqy  ", 0
+name_217	byte	"getct  ", 0
+name_218	byte	"getrnd ", 0
+name_219	byte	"setdacs", 0
+name_220	byte	"setxfrq", 0
+name_221	byte	"getxacc", 0
+name_222	byte	"waitx  ", 0
+name_223	byte	"setse1 ", 0
+name_224	byte	"setse2 ", 0
+name_225	byte	"setse3 ", 0
+name_226	byte	"setse4 ", 0
+name_227	byte	"pollint", 0
+name_228	byte	"pollct1", 0
+name_229	byte	"pollct2", 0
+name_230	byte	"pollct3", 0
+name_231	byte	"pollse1", 0
+name_232	byte	"pollse2", 0
+name_233	byte	"pollse3", 0
+name_234	byte	"pollse4", 0
+name_235	byte	"pollpat", 0
+name_236	byte	"pollfbw", 0
+name_237	byte	"pollxmt", 0
+name_238	byte	"pollxfi", 0
+name_239	byte	"pollxro", 0
+name_240	byte	"pollxrl", 0
+name_241	byte	"pollatn", 0
+name_242	byte	"pollqmt", 0
+name_243	byte	"waitint", 0
+name_244	byte	"waitct1", 0
+name_245	byte	"waitct2", 0
+name_246	byte	"waitct3", 0
+name_247	byte	"waitse1", 0
+name_248	byte	"waitse2", 0
+name_249	byte	"waitse3", 0
+name_250	byte	"waitse4", 0
+name_251	byte	"waitpat", 0
+name_252	byte	"waitfbw", 0
+name_253	byte	"waitxmt", 0
+name_254	byte	"waitxfi", 0
+name_255	byte	"waitxro", 0
+name_256	byte	"waitxrl", 0
+name_257	byte	"waitatn", 0
+name_258	byte	"allowi ", 0
+name_259	byte	"stalli ", 0
+name_260	byte	"trgint1", 0
+name_261	byte	"trgint2", 0
+name_262	byte	"trgint3", 0
+name_263	byte	"nixint1", 0
+name_264	byte	"nixint2", 0
+name_265	byte	"nixint3", 0
+name_266	byte	"setint1", 0
+name_267	byte	"setint2", 0
+name_268	byte	"setint3", 0
+name_269	byte	"setq   ", 0
+name_270	byte	"setq2  ", 0
+name_271	byte	"push   ", 0
+name_272	byte	"pop    ", 0
+name_273	byte	"jmp.ind", 0
+name_274	byte	"call.ind", 0
+name_275	byte	"ret    ", 0
+name_276	byte	"calla.ind", 0
+name_277	byte	"reta   ", 0
+name_278	byte	"callb.ind", 0
+name_279	byte	"retb   ", 0
+name_280	byte	"jmprel ", 0
+name_281	byte	"skip   ", 0
+name_282	byte	"skipf  ", 0
+name_283	byte	"execf  ", 0
+name_284	byte	"getptr ", 0
+name_285	byte	"getbrk ", 0
+name_286	byte	"brk    ", 0
+name_287	byte	"setluts", 0
+name_288	byte	"lutsoff", 0
+name_289	byte	"lutson ", 0
+name_290	byte	"setcy  ", 0
+name_291	byte	"setci  ", 0
+name_292	byte	"setcq  ", 0
+name_293	byte	"setcfrq", 0
+name_294	byte	"setcmod", 0
+name_295	byte	"setpiv ", 0
+name_296	byte	"setpix ", 0
+name_297	byte	"cogatn ", 0
+name_298	byte	"testp  ", 0
+name_299	byte	"testpn ", 0
+name_300	byte	"dirl   ", 0
+name_301	byte	"dirh   ", 0
+name_302	byte	"dirc   ", 0
+name_303	byte	"dirnc  ", 0
+name_304	byte	"dirz   ", 0
+name_305	byte	"dirnz  ", 0
+name_306	byte	"dirrnd ", 0
+name_307	byte	"dirnot ", 0
+name_308	byte	"outl   ", 0
+name_309	byte	"outh   ", 0
+name_310	byte	"outc   ", 0
+name_311	byte	"outnc  ", 0
+name_312	byte	"outz   ", 0
+name_313	byte	"outnz  ", 0
+name_314	byte	"outrnd ", 0
+name_315	byte	"outnot ", 0
+name_316	byte	"fltl   ", 0
+name_317	byte	"flth   ", 0
+name_318	byte	"fltc   ", 0
+name_319	byte	"fltnc  ", 0
+name_320	byte	"fltz   ", 0
+name_321	byte	"fltnz  ", 0
+name_322	byte	"fltrnd ", 0
+name_323	byte	"fltnot ", 0
+name_324	byte	"drvl   ", 0
+name_325	byte	"drvh   ", 0
+name_326	byte	"drvc   ", 0
+name_327	byte	"drvnc  ", 0
+name_328	byte	"drvz   ", 0
+name_329	byte	"drvnz  ", 0
+name_330	byte	"drvrnd ", 0
+name_331	byte	"drvnot ", 0
+name_332	byte	"splitb ", 0
+name_333	byte	"mergeb ", 0
+name_334	byte	"splitw ", 0
+name_335	byte	"mergew ", 0
+name_336	byte	"seussf ", 0
+name_337	byte	"seussr ", 0
+name_338	byte	"rgbsqz ", 0
+name_339	byte	"rgbexp ", 0
+name_340	byte	"xoro32 ", 0
+name_341	byte	"rev    ", 0
+name_342	byte	"rczr   ", 0
+name_343	byte	"rczl   ", 0
+name_344	byte	"wrc    ", 0
+name_345	byte	"wrnc   ", 0
+name_346	byte	"wrz    ", 0
+name_347	byte	"wrnz   ", 0
+name_348	byte	"modcz  ", 0
+name_349	byte	"modc   ", 0
+name_350	byte	"modz   ", 0
+name_351	byte	"rfvar  ", 0
+name_352	byte	"rfvars ", 0
+name_353	byte	"jmp    ", 0
+name_354	byte	"call   ", 0
+name_355	byte	"calla  ", 0
+name_356	byte	"callb  ", 0
+name_357	byte	"calld  ", 0
+name_358	byte	"loc    ", 0
+name_359	byte	"augs   ", 0
+name_360	byte	"augd   ", 0
+
+disasm_cond_table
+		byte "_ret_  ",0     ' $0
+		byte "if_a   ",0     ' $1
+		byte "if_01  ",0     ' $2
+		byte "if_ae  ",0     ' $3
+		byte "if_10  ",0     ' $4
+		byte "if_nz  ",0     ' $5
+		byte "if_dif ",0     ' $6
+		byte "if_!11 ",0     ' $7
+		byte "if_11  ",0     ' $8
+		byte "if_sam ",0     ' $9
+		byte "if_z   ",0     ' $a
+		byte "if_!10 ",0     ' $b
+		byte "if_c   ",0     ' $c
+		byte "if_!01 ",0     ' $d
+		byte "if_be  ",0     ' $e
+		byte "       ",0     ' $f

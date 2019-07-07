@@ -1,0 +1,185 @@
+''
+'' disassembler
+''
+'' call with dis_instr holding the instruction to disassemble
+'' prints a disassembly for that instruction
+''
+'' requires variables:
+'' dis_instr
+'' dis_temp1
+'' dis_temp2
+'' dis_ptr
+''
+#define PRINT_DFLT 0x0
+#define PRINT_AUG  0x1
+#define PRINT_LOC  0x2
+#define PRINT_DSTONLY 0x3
+#define PRINT_SRCONLY 0x4
+#define PRINT_RDWR    0x5
+#define PRINT_NONE    0x6
+#define PRINT_LONG_JMP 0x7
+
+disassemble
+	mov	dis_ptr, ##@disasm_tab
+	
+	'' try to find the instruction in the table
+dis_loop
+	rdlong	dis_temp1, dis_ptr	' get pattern
+	add	dis_ptr, #4
+  	rdlong	dis_temp2, dis_ptr	' get mask
+	add	dis_ptr, #4
+	and	dis_temp2, dis_instr
+	cmp	dis_temp1, dis_temp2 wz	' match?
+  if_z	jmp	#dis_hit
+  	add	dis_ptr, #8
+	jmp	#dis_loop
+	
+dis_hit
+	'' print the raw instruction bits
+	mov	uart_num, dis_instr
+	call	#ser_hex
+	
+	rdlong	dis_temp1, dis_ptr	' get flags
+	add	dis_ptr, #4
+
+	'' print condition code
+	mov	uart_str, dis_instr wz
+	shr	uart_str, #28
+	and	uart_str, #$f		' extract condition
+  if_z	mov	uart_str, #$f	        ' if no-op, pretend IF_TRUE
+  	shl	uart_str, #3		' multiply pointer by 8
+	add	uart_str, ##@disasm_cond_table
+	call	#ser_str
+
+	'' print opcode
+	rdlong	uart_str, dis_ptr	' get opcode name
+	call	#ser_str
+	sub	dis_ptr, #12		' go back to start of table
+	
+	'' should parse src and dest here
+	'' not finished yet
+	shl    dis_temp1, #2		' multiply by 4
+	add    dis_temp1, ##@print_jmp_table
+	jmp    dis_temp1+0	' indirect jump
+
+print_jmp_table
+	jmp	#\@print_default
+	jmp	#\@print_aug
+	jmp	#\@print_loc		'loc
+	jmp	#\@print_dstonly	'dstonly
+	jmp	#\@print_srconly	'srconly
+	jmp	#\@print_default	'rdwr
+	jmp	#\@print_no_operands	'none
+	jmp	#\@print_jmp
+	
+print_default
+	'' this is the basic instruction form
+	mov    uart_num, dis_instr
+	shr    uart_num, #9
+	and    uart_num, #$1ff
+	call   #ser_hex3
+	mov    uart_char, #","
+	call   #ser_tx
+print_srconly
+	mov    uart_num, dis_instr
+print_lastop
+	mov    uart_char, #"#"
+	test   dis_instr, ##$00040000 wc
+  if_c	call   #ser_tx
+	and    uart_num, #$1ff
+	call   #ser_hex3
+	call   #check_wcz
+print_no_operands
+	jmp	#ser_nl
+
+	'' check for wcz, wc, or wz bits
+check_wcz
+	add	dis_ptr, #4
+	rdlong	dis_temp2, dis_ptr	' re-read mask
+	shr	dis_temp2, #19
+	and	dis_temp2, #3
+	xor	dis_temp2, #3		' flip so only bits clear in mask will be used
+	mov	uart_str, dis_instr
+	shr	uart_str, #19
+	and	uart_str, dis_temp2	' 00 for no flags, 01 for Z, 10 for C, 11 for CZ
+	shl	uart_str, #2
+	add	uart_str, ##@wcz_strings
+	mov	uart_char, #" "
+	call	#ser_tx
+	jmp	#ser_str
+
+	' strings to print for flag setting; each must be 4 bytes long
+wcz_strings
+	byte 0,0,0,0
+	byte "wz",0,0
+	byte "wc",0,0
+	byte "wcz",0
+	
+	
+print_dstonly
+	mov	uart_num, dis_instr
+	shr	uart_num, #9
+	jmp	#print_lastop
+	
+	'' this is for printing AUGS or AUGD
+print_aug
+	mov	uart_char, #"#"
+	call	#ser_tx
+	mov	uart_num, dis_instr
+	shl	uart_num, #9
+hex_and_return
+	call	#ser_hex
+	jmp	#ser_nl
+
+	'' this is for printing a long jump
+print_jmp
+	mov	uart_char, #"#"
+	call	#ser_tx
+	mov	uart_num, dis_instr
+	shl	uart_num, #12
+	shr	uart_num, #12
+	jmp	#hex_and_return
+
+	'' print a "loc" instruction
+print_loc
+	mov	uart_str, dis_instr
+	shr	uart_str, #21
+	and	uart_str, #3	' isolate register
+	shl	uart_str, #3	' multiply by 8
+	add	uart_str, ##@locsrc_tab
+	call	#ser_str
+	jmp	#print_jmp
+
+locsrc_tab
+	byte	"pa, ", 0, 0, 0, 0
+	byte	"pb, ", 0, 0, 0, 0
+	byte	"ptra, ", 0, 0
+	byte	"ptrb, ", 0, 0
+	
+	'' print 3 hex digits
+ser_hex3
+	mov	uart_char, #"$"
+	call	#ser_tx
+	mov	dis_cnt, #3
+.digitloop
+	getnib	uart_char, uart_num, #2
+	shl	uart_num, #4
+	cmp	uart_char, #10 wcz
+if_b	add	uart_char, #"0"
+if_ae	add	uart_char, #"A"-10
+	call	#ser_tx
+	djnz	dis_cnt, #.digitloop
+	ret
+
+#include "disasm_tab.spin2"
+
+#ifdef DEBUG_ENGINE
+hub_print_newpc
+		mov	uart_char, #"="
+		call	#ser_tx
+		mov	uart_num, ptrb
+		jmp	#ser_hex
+hub_print_cachemiss
+		mov	uart_char, #"$"
+		call	#ser_tx
+#endif
