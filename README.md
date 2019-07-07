@@ -32,14 +32,14 @@ Edit the Makefile so that the `FASTSPIN`, `TOOLROOT`, and `TOOLPREFIX` variables
 
 Once you've edited the Makefile as described above, you should be able to do `make install` to copy the necessary files to the RISC-V toolchain directory.
 
-## Building Applications
+## Building C Applications
 
 Now you should be ready to build. To create a P2 compatible ELF file, do:
 ```
-   riscv-none-embed-gcc -T riscvp2.ld -Os -o hello.elf hello.c -lc -lgloss
+   riscv-none-embed-gcc -T riscvp2.ld -Os -o hello.elf hello.c
 ```
 
-The `-T riscvp2.ld` says to link for the P2. The `-lc` and `-lgloss` are necessary; `libgloss` contains the implementations for system calls, and if we don't include this after an explicit `-lc` the default link order will not find them.
+The `-T riscvp2.ld` says to link for the P2. Other options are as usual for GCC.
 
 You may want to also pass `-specs=nano.specs`. This uses a reduced version of the newlib C library ("nano-newlib") which still has most useful functionality but is much smaller.
 
@@ -51,3 +51,7 @@ Now `hello.binary` may be run on the P2 eval board:
 ```
    loadp2 -SINGLE -b230400 hello.binary -t
 ```
+
+## Building C++ Applications
+
+Basically the same as building C applications, but use `$(TOOLCHAIN)-g++` instead of `$(TOOLCHAIN)-gcc`.

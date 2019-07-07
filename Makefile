@@ -14,6 +14,7 @@ LIBROOT=$(TOOLROOT)/$(TOOLPREFIX)/lib
 
 AS=$(BINPREFIX)as
 CC=$(BINPREFIX)gcc
+CXX=$(BINPREFIX)g++
 
 #
 # build 2 versions of the trace code:
@@ -61,9 +62,15 @@ p2lut.bin: $(P2SRCS)
 
 
 hello.elf: hello.c
-	$(CC) -T riscvp2.ld -specs=nano.specs -Os -o hello.elf hello.c -lc -lgloss
+	$(CC) -T riscvp2.ld -specs=nano.specs -Os -o $@ $<
 
 hello.binary: hello.elf
+	$(BINPREFIX)objcopy -O binary $< $@
+
+hello-c++.elf: hello.cc
+	$(CXX) -T riscvp2.ld -specs=nano.specs -Os -o $@ $<
+
+hello-c++.binary: hello-c++.elf
 	$(BINPREFIX)objcopy -O binary $< $@
 
 clean:
