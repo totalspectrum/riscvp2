@@ -26,5 +26,28 @@ You can change the name to suit your taste; just edit the `TOOLROOT` definition 
 
 ### Makefile
 
-Edit the Makefile so that the `FASTSPIN`, `TOOLROOT`, and `TOOLPREFIX` variables are set up for your system. The defaults for TOOLROOT and TOOLPREFIX will be fine if you used the gnu-mcu-eclipse toolchain and moved it to `/opt/riscv-none-gcc` as described above. Otherwise `TOOLROOT` should be the root directory for the toolchain, and `TOOLPREFIX` the prefix used for binaries (this may be `riscv-unknown-elf-` or `riscv-none-embed-`). In the end `$(TOOLROOT)/bin/$(TOOLPREFIX)gcc` should be the path to the RISC-V gcc.
+Edit the Makefile so that the `FASTSPIN`, `TOOLROOT`, and `TOOLPREFIX` variables are set up for your system. The defaults for TOOLROOT and TOOLPREFIX will be fine if you used the gnu-mcu-eclipse toolchain and moved it to `/opt/riscv-none-gcc` as described above. Otherwise `TOOLROOT` should be the root directory for the toolchain, and `TOOLPREFIX` the prefix used for binaries (this may be `riscv-unknown-elf` or `riscv-none-embed`). In the end `$(TOOLROOT)/bin/$(TOOLPREFIX)-gcc` should be the path to the RISC-V gcc.
 
+### Installation of P2 code
+
+Once you've edited the Makefile as described above, you should be able to do `make install` to copy the necessary files to the RISC-V toolchain directory.
+
+## Building Applications
+
+Now you should be ready to build. To create a P2 compatible ELF file, do:
+```
+   riscv-none-embed-gcc -T riscvp2.ld -Os -o hello.elf hello.c -lc -lgloss
+```
+
+The `-T riscvp2.ld` says to link for the P2. The `-lc` and `-lgloss` are necessary; `libgloss` contains the implementations for system calls, and if we don't include this after an explicit `-lc` the default link order will not find them.
+
+You may want to also pass `-specs=nano.specs`. This uses a reduced version of the newlib C library ("nano-newlib") which still has most useful functionality but is much smaller.
+
+None of the current loaders for P2 can load ELF files, so this must further be converted to binary:
+```
+   riscv-none-embed-objcopy -O binary hello.elf hello.binary
+```
+Now `hello.binary` may be run on the P2 eval board:
+```
+   loadp2 -SINGLE -b230400 hello.binary -t
+```

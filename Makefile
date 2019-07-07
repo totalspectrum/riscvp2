@@ -29,7 +29,10 @@ ASMSCRIPTS=rvp2.s rvp2_lut.s
 default: $(EMUOBJS) $(LDSCRIPTS)
 
 install: $(EMUOBJS) $(LDSCRIPTS)
-	cp $^ $(LIBROOT)
+	# copy the linker files to the library
+	cp $(EMUOBJS) $(LDSCRIPTS) $(LIBROOT)
+	# the local .elf files may be obsolete now
+	rm -f *.elf *.binary
 
 riscvp2.ld: ldscript.templ
 	sed "s^%LIBROOT%^$(LIBROOT)^g;s^%EMULATOR%^rvp2.o^g" < ldscript.templ > $@
@@ -58,7 +61,7 @@ p2lut.bin: $(P2SRCS)
 
 
 hello.elf: hello.c
-	$(CC) -T riscvp2.ld -specs=nano.specs -o hello.elf hello.c -lc -lgloss
+	$(CC) -T riscvp2.ld -specs=nano.specs -Os -o hello.elf hello.c -lc -lgloss
 
 hello.binary: hello.elf
 	$(BINPREFIX)objcopy -O binary $< $@
