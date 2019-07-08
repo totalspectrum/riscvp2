@@ -30,9 +30,12 @@ ser_init
 		' set system clock
 		hubset	     #0
 		nop
-		hubset	##_CLOCK_MODE
+		mov	pa, ##_CLOCK_MODE
+		hubset	pa
+		wrlong	pa, #$18
 		waitx	##20_000_000/100
-		hubset	##_CLOCK_MODE | %11
+		or	pa, #3
+		hubset	pa
 
 		mov	pa, ##7 + ((_CYCLES_PER_SEC / BAUD) << 16) ' bitperiod
 		wrpin	##_txmode, #TX_PIN
@@ -42,7 +45,10 @@ ser_init
 		wxpin	pa, #RX_PIN
 		dirh	#RX_PIN
 
-		waitx	##_CYCLES_PER_SEC/2
+		mov	pa, ##_CYCLES_PER_SEC
+		wrlong	pa, #$14	' update system frequency data
+		shr	pa, #1
+		waitx	pa
 		ret
 
 		'' receive a single character into uartchar
