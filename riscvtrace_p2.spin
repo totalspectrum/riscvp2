@@ -131,12 +131,12 @@ optable
 {04}		long	HIBIT + mathtab			' TABLE: math immediate
 {05}		long	@hub_compile_auipc		' auipc instruction
 {06}		long	@illegalinstr			' wide math imm
-{07}		long	@illegalinstr			' ???
+{07}		long	@illegalinstr			' reserved
 
 {08}		long	HIBIT + storetab		' TABLE: store instructions
 {09}		long	@illegalinstr			' float store
 {0A}		long	HIBIT + custom1tab		' TABLE: custom1
-{0B}		long	@illegalinstr			' atomics
+{0B}		long	@hub_compile_atomic		' atomics
 {0C}		long	HIBIT + mathtab			' TABLE: math reg<->reg
 {0D}		long	@hub_compile_lui		' lui
 {0E}		long	@illegalinstr			' wide math reg
@@ -730,7 +730,7 @@ millis_read_csr
 		getct	temp
 		cmp	dest, cycleh wz
 	if_nz	jmp	#millis_read_csr
-		' now we have a 64 bit number (dest, cycleh)
+		' now we have a 64 bit number (dest, temp)
 		' want to divide this by 160_000 to get milliseconds
 		setq	dest
 		qdiv	temp, ##(_CYCLES_PER_SEC/1000)
@@ -837,9 +837,12 @@ imp_rem
 		call	#imp_remu
 		testb	divflags, #31 wc
 	_ret_	negc	rd
+
+		'' calculate signed rs1 / rs2
 imp_div
-		mov	divflags, rs1
-		xor	divflags, rs2
+		mov	divflags, rs2 wz
+	if_z	jmp	#div_by_zero
+		xor	divflags, rs1
 		abs	rs1,rs1
 		abs	rs2,rs2
 		call	#imp_divu
@@ -1474,7 +1477,21 @@ compile_ecall
 		andn	opdata, loc_mask
 		or	opdata, ##@ecall_func
 		jmp	#emit_opdata_and_ret
-	
+
+		''
+		'' atomic operations
+		'' for now we're just going to punt on these,
+		'' as the current implementation is single threaded
+		''
+hub_compile_atomic
+		cmp	func3, #2 wz	' check width
+	if_nz	jmp	#illegalinstr	' only 32 bit wide supported
+		mov	func2, opdata
+		shr	func2, #27
+		and	func2, #3 wz	' check for lr/sc
+		'' not finished yet...
+		jmp	#illegalinstr
+
 		''
 		''
 		'' code for compiling compressed instructions
@@ -1902,6 +1919,10 @@ ecall_func
 	if_z	jmp	#syscall_write
 		cmp	x17, #ECALL_READ wz
 	if_z	jmp	#syscall_read
+		cmp	x17, #ECALL_GETTIMEOFDAY wz
+	if_z	jmp	#syscall_gettimeofday
+		cmp	x17, #ECALL_EXIT wz
+	if_z	jmp	#syscall_exit
 		neg	x10, #ENOSYS
 		ret
 syscall_write
@@ -1937,7 +1958,33 @@ doread
 		add	x10, #1
 		djnz	x12, #doread
 		ret
-		
+
+syscall_exit
+		cogid	temp
+		cogstop	temp
+
+		'' x10 == pointer to timeval struct
+		''   32 bits time_t
+		''   32 bits microseconds
+syscall_gettimeofday
+		mov	dest, cycleh
+		getct	temp
+		cmp	dest, cycleh wz
+	if_nz	jmp	#syscall_gettimeofday
+		'' now (dest, temp) is 64 bit cycle counter
+		'' convert to seconds
+		setq	   dest
+		qdiv	   temp, ##(_CYCLES_PER_SEC)
+		getqx	   dest		' dest is seconds
+		getqy	   temp		' temp is remainder cycles
+		setq	   #0
+		qdiv	   temp, ##(_CYCLES_PER_SEC / 1000000)
+		getqx	   temp	 	' temp is microseconds
+		wrlong	   dest, x10
+		add	   x10, #4
+		wrlong	   temp, x10
+	_ret_	mov	   x10, #0
+
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 		orgh	$4000
