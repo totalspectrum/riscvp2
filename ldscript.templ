@@ -8,7 +8,7 @@ OUTPUT_FORMAT("elf32-littleriscv", "elf32-littleriscv",
 	      "elf32-littleriscv")
 OUTPUT_ARCH(riscv)
 ENTRY(_start)
-SEARCH_DIR("=%LIBROOT%");
+SEARCH_DIR("%LIBROOT%");
 GROUP(-lc -lgloss -lgcc)
 STARTUP("%EMULATOR%")
 SECTIONS
