@@ -41,9 +41,23 @@ Now you should be ready to build. To create a P2 compatible ELF file, do:
 
 The `-T riscvp2.ld` says to link for the P2. Other options are as usual for GCC.
 
+### Command line options
+
+#### -T linker script
+
+There are several linker scripts installed:
+```
+riscvp2.ld:     uses HUB memory as cache, good for larger programs
+riscvp2_lut.ld: uses LUT memory as cache, good for smaller programs
+```
+
+#### -specs
+
 You may want to also pass `-specs=nano.specs`. This uses a reduced version of the newlib C library ("nano-newlib") which still has most useful functionality but is much smaller.
 
-None of the current loaders for P2 can load ELF files, so this must further be converted to binary:
+### Output
+
+None of the current loaders for P2 can load ELF files, so the output generally must be converted to binary:
 ```
    riscv-none-embed-objcopy -O binary hello.elf hello.binary
 ```
