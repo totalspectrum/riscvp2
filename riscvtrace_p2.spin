@@ -2,6 +2,15 @@
 '#define USE_DISASM
 '#define USE_LUT_CACHE
 
+#ifndef USE_LUT_CACHE
+'' define one of CACHE_SIZE or TOTAL_SIZE
+'' TOTAL_SIZE will define the total size of interpreter + cache
+'' CACHE_SIZE will just give that much cache
+'#define CACHE_SIZE 8192
+'#define CACHE_SIZE 32768
+#define TOTAL_SIZE 32768
+#endif
+
 {{
    RISC-V Emulator for Parallax Propeller
    Copyright 2017-2019 Total Spectrum Software Inc.
@@ -1999,14 +2008,22 @@ syscall_gettimeofday
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 '' cache memory
-#ifndef USE_LUT_CACHE
 		orgh
 		alignl
+#ifdef TOTAL_SIZE
+
+START_OF_CACHE
+		long 0
+		orgh TOTAL_SIZE
+END_OF_CACHE
+
+#else
+
+# ifdef CACHE_SIZE
 START_OF_CACHE
 		byte	0[CACHE_SIZE]
 END_OF_CACHE
-		long	$aabbccdd[8]	' overflow space
-#endif
+# endif
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 		orgh
@@ -2016,5 +2033,8 @@ here
 		' reason PNut for P2 pads output this way, and fastspin does
 		' as well. But we cannot afford to have any
 		' padding come after the final label
-		byte $ff[ ((@@@here+32) & !31) - @@@here ]
+		'byte $ff[ ((@@@here+31) & !31) - @@@here ]
+		byte $ff[ ((@here+255) & !255) - @here ]
+#endif
+
 __riscv_start
