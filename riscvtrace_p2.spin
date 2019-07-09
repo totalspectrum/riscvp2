@@ -295,23 +295,22 @@ altr_op
 ''    mov <rd>, dest
 multab
 	long	0	' special case ' call	#\imp_mul
-	call	#\illegalinstr
-	call	#\illegalinstr
-	call	#\imp_muluh
+	call	#\imp_mulh	  ' mulh
+	call	#\imp_mulhsu	  ' mulhsu
+	call	#\imp_mulhu	  ' mulhu
 	call	#\imp_div
 	call	#\imp_divu
 	call	#\imp_rem
 	call	#\imp_remu
 
-imp_mul
+domul_pat
 	qmul	rs1, rs2
     	getqx	rd
-
 
 mul_templ
 	mov	rs1, 0-0
 	mov	rs2, 0-0
-	call	#\imp_mul
+	call	#\illegalinstr
 	mov	0-0, rd
 	
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -822,11 +821,41 @@ post_setup_vec
 '=========================================================================
 ' MATH ROUTINES
 '=========================================================================
-imp_muluh
+imp_mulhu
 		qmul	rs1, rs2
     _ret_	getqy	rd
+		
+    		' for signed 32 bit multiplication,
+		' do (hi,lo) = x*y as unsigned, then correct via
+		' if (x < 0) hi -= y
+		' if (y < 0) hi -= x
+imp_mulh
+		qmul	rs1, rs2
+		mov	temp, #0
+		testb	rs1, #31 wc
+	if_c	add	temp, rs2
+		testb	rs2, #31 wc
+	if_c	add	temp, rs1
+		getqy	rd
+	_ret_	sub	rd, temp
+		
+imp_mulhsu
+		qmul	rs1, rs2
+		mov	temp, #0
+		testb	rs1, #31 wc
+	if_c	add	temp, rs2
+		getqy	rd
+	_ret_	sub	rd, temp
 
-    		'' calculate rs1 / rs2
+#ifdef NEVER
+print_rd
+		mov	uart_char, #"!"
+		call	#ser_tx
+		mov	uart_num, rd
+		jmp	#ser_hex
+#endif
+
+		'' calculate rs1 / rs2
 imp_divu
 		tjz	rs2, #div_by_zero
 		setq	#0
@@ -979,19 +1008,21 @@ emit_big_instr
 '
 hub_muldiv
 	alts	func3, #multab
-	mov	temp, 0-0 wz
+	mov	opdata, 0-0 wz
 if_z	jmp	#handle_mul
 	sets	mul_templ, rs1
 	sets	mul_templ+1, rs2
-	mov	mul_templ+2, temp
-	setd	mul_templ+3, rd
+	mov	mul_templ+2, opdata
+	cmp	rd, #0 wz
+if_nz	setd	mul_templ+3, rd
+if_z	setd	mul_templ+3, #temp
 	mov	jit_instrptr, #mul_templ
 	jmp	#emit4
 handle_mul
-	setd	imp_mul, rs1
-	sets	imp_mul, rs2
-	setd	imp_mul+1, rd
-	mov	jit_instrptr, #imp_mul
+	setd	domul_pat, rs1
+	sets	domul_pat, rs2
+	setd	domul_pat+1, rd
+	mov	jit_instrptr, #domul_pat
 	jmp	#emit2
 
 #ifdef NEVER
@@ -1132,7 +1163,14 @@ lui_aui_common
 hub_slt_func
 		cmp	rd, #0	wz	' if rd == 0, emit nop
 	if_z	jmp	#\emit_nop
-	
+
+		'' MUL shares the same opcode space, so look for it
+		mov	temp, opcode
+		shr	temp, #25
+		and	temp, #$3f
+		cmp	temp, #1 wz
+	if_z	jmp	#hub_muldiv
+		
 		andn	opdata, #$1ff	' zero out source
 		setd	sltfunc_pat, rd
 		'' check for immediate
