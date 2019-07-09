@@ -1935,8 +1935,12 @@ syscall_write
 		mov	x10, x12	wz
 	if_z	ret
 writelp
-		rdbyte	uart_char, x11
+		rdbyte	dest, x11
 		add	x11, #1
+		cmp	dest, #10 wz	' LF?
+	if_z	mov	uart_char, #13
+	if_z	call	#ser_tx
+		mov	uart_char, dest
 		call	#ser_tx
 		djnz	x12, #writelp
 		ret
