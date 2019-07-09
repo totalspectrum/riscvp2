@@ -75,10 +75,10 @@ rvp2_lut.o: rvp2_lut.s p2lut.bin
 
 # the actual P2 JIT code, compiled via fastspin
 p2trace.bin: $(P2SRCS)
-	$(FASTSPIN) -2 -o $@ riscvtrace_p2.spin
+	$(FASTSPIN) -2 -l -o $@ riscvtrace_p2.spin
 
 p2lut.bin: $(P2SRCS)
-	$(FASTSPIN) -2 -DUSE_LUT_CACHE -o $@ riscvtrace_p2.spin
+	$(FASTSPIN) -2 -l -DUSE_LUT_CACHE -o $@ riscvtrace_p2.spin
 
 
 # our demo programs
@@ -95,4 +95,4 @@ hello-c++.binary: hello-c++.elf
 	$(BINPREFIX)objcopy -O binary $< $@
 
 clean:
-	rm -f *.binary *.bin *.elf *.o $(LDSCRIPTS) $(ASMSCRIPTS)
+	rm -f *.binary *.bin *.elf *.o *.p2asm *,lst $(LDSCRIPTS) $(ASMSCRIPTS)

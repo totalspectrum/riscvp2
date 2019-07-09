@@ -39,8 +39,7 @@ CON
   WC_BITNUM = 20
   WZ_BITNUM = 19
   IMM_BITNUM = 18
-  BASE_OF_MEM = $4000   ' 16K
-  TOP_OF_MEM = $70000   ' leaves 32K free at top for cache and debug
+  TOP_OF_MEM = $7C000   ' leaves 16K free at top for debug
   HIBIT = $80000000
 
   RV_SIGNOP_BITNUM = 30		' RISCV bit for changing shr/sar
@@ -70,7 +69,7 @@ x1		jmp	#x3
 x2		long	TOP_OF_MEM
 x3		nop
 
-x4		loc	ptrb, #\BASE_OF_MEM
+x4		loc	ptrb, #\@__riscv_start
 x5		rdlong	temp, #$18	' get old clock mode
 x6		hubset	temp
 x7		mov	x1, #$1ff	' will count down
@@ -1271,7 +1270,7 @@ reg_buf_end
 debug_print
 		mov	uart_num, #0	' c0 := 0
 		mov	info2, #0	' c1 := 0
-		loc	pa, #\BASE_OF_MEM	' ptr := PROGBASE
+		loc	pa, #\@__riscv_start	' ptr := PROGBASE
 		loc	pb, #\TOP_OF_MEM
 		call	#update_checksum
 
@@ -1306,6 +1305,7 @@ illegal_instruction_msg
 hex_buf
 		byte  0[8], 0
 
+		alignl
 
 hub_pinsetinstr
 		'' RISC-V has store value in rs2
@@ -1986,5 +1986,23 @@ syscall_gettimeofday
 	_ret_	mov	   x10, #0
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+'' cache memory
+#ifndef USE_LUT_CACHE
+		orgh
+		alignl
+START_OF_CACHE
+		byte	0[CACHE_SIZE]
+END_OF_CACHE
+		long	$aabbccdd[8]	' overflow space
+#endif
 
-		orgh	$4000
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+		orgh
+		alignl
+here
+		' we have to pad to a 32 byte boundary; for some
+		' reason PNut for P2 pads output this way, and fastspin does
+		' as well. But we cannot afford to have any
+		' padding come after the final label
+		byte $ff[ ((@@@here+32) & !31) - @@@here ]
+__riscv_start

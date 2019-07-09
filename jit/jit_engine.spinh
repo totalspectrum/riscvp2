@@ -32,6 +32,10 @@
 #define CACHE_TAG_SIZE $200
 #define CACHE_OFFSET_ALIGN 16
 #define CACHE_OFFSET_SHIFT 4
+
+'' size of cache in bytes
+#define CACHE_SIZE 32768
+
 #endif
 #define CACHE_IGNORE_BITS 1
 
@@ -349,7 +353,7 @@ jit_top_of_cache_mem
 		long	$400 - 8
 #else
 jit_base_of_cache_mem
-		long	TOP_OF_MEM
+		long	@START_OF_CACHE
 jit_top_of_cache_mem
-		long	$7c000 - 16
+		long	@END_OF_CACHE
 #endif
