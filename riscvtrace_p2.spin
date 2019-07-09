@@ -694,12 +694,14 @@ dummy		res	32 ' can fit 47 in
 		'' which is the default
 #define DEFAULT_CSR_INSTRUCTION $0667EE01
 
-csr_vectors
-		long   DEFAULT_CSR_INSTRUCTION[32]
 init_vectors
 		'' this is a hook for expanding the interpreter
-		nop
-		jmp	#setup
+		jmp	#\setup	      		' first; early initialization
+post_setup_hook
+		jmp	#\post_setup_vec	' called after setup
+
+csr_vectors
+		long   DEFAULT_CSR_INSTRUCTION[32]
 
 		'''''''''''''''''''''''''''''''''''''''''
 		'' actual CSR utility routines
@@ -753,8 +755,8 @@ setup
 
 		''
 		'' set up CSR vectors
-		'' FIXME: we should skip individual vectors if they
-		'' are unchanged
+		'' we should skip individual vectors if they
+		'' were modified by the user
 		''
 
 		loc	ptra, #\@csr_vectors
@@ -777,11 +779,10 @@ setup
 		call	#install_vector
 		loc	pa, #\@millis_write_csr
 		call	#install_vector
-		
-		'' print boot message
-		mov	uart_str, ##@boot_msg
-		call	#ser_str
-		
+
+		'' call the post setup hook
+		call	#post_setup_hook
+
 		'' run the JIT loop forever
 		jmp	#jit_set_pc
 
@@ -794,6 +795,13 @@ install_vector
 	if_nz	ret
 		or	pa, ##$FD800000	' turn into absolute JMP
 		wrlong	pa, ptra++
+		ret
+
+post_setup_vec
+#ifdef DEBUG_ENGINE
+		mov	uart_str, ##@boot_msg
+		call	#ser_str
+#endif		
 		ret
 		
 #include "jit/util_serial.spin2"
