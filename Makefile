@@ -53,10 +53,10 @@ install: $(EMUOBJS) $(LDSCRIPTS)
 
 # rules to build the linker scripts
 riscvp2.ld: ldscript.templ
-	sed "s^%LIBROOT%^$(LIBROOT)^g;s^%EMULATOR%^rvp2.o^g" < ldscript.templ > $@
+	sed "s^%LIBROOT%^$(LIBROOT)^g;s^%EMULATOR%^$(LIBROOT)/rvp2.o^g" < ldscript.templ > $@
 
 riscvp2_lut.ld: ldscript.templ
-	sed "s^%LIBROOT%^$(LIBROOT)^g;s^%EMULATOR%^rvp2_lut.o^g" < ldscript.templ > $@
+	sed "s^%LIBROOT%^$(LIBROOT)^g;s^%EMULATOR%^$(LIBROOT)/rvp2_lut.o^g" < ldscript.templ > $@
 
 # rules to build the assembly stubs that add the JIT RISC-V to P2 compiler
 # at the start of binaries
