@@ -135,7 +135,7 @@ optable
 {00}		long	HIBIT + loadtab			' TABLE: load instructions
 {01}		long	@illegalinstr			' float load
 {02}		long	HIBIT + custom0tab		' TABLE: custom0 instructions
-{03}		long	@illegalinstr			' fence
+{03}		long	@hub_compile_fence		' fence
 {04}		long	HIBIT + mathtab			' TABLE: math immediate
 {05}		long	@hub_compile_auipc		' auipc instruction
 {06}		long	@illegalinstr			' wide math imm
@@ -610,6 +610,10 @@ emit2
 emit4
 		mov	pb, #4
 		jmp	#jit_emit
+
+'' pattern for flushing the instruction cache
+flush_icache_pat
+		call	#\jit_reinit_cache
 		
 		''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 		'' code for doing compilation
@@ -1145,6 +1149,18 @@ do_illegal
 		mov	jit_instrptr, #imp_illegal
 		call	#emit1
 		mov	jit_condition, #0
+		jmp	#jit_emit_direct_branch
+
+hub_compile_fence
+		cmp	func3, #0 wz
+	if_z	ret			' func3 == 0 means fence; just ignore
+		cmp	func3, #1 wz	' check fence.i
+	if_nz	jmp	#illegalinstr
+		'' fence.i: insert a cache flush command
+		mov	jit_instrptr, #flush_icache_pat
+		call	#emit1
+		mov	jit_condition, #0
+		mov	jit_branch_dest, ptrb
 		jmp	#jit_emit_direct_branch
 		
 hub_compile_auipc
