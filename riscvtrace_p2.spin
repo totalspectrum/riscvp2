@@ -325,6 +325,9 @@ sltfunc
 sltfunc_pat
 		wrc	0-0
 
+'' flag for atomic operations
+valid_reservation long 0
+
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''
 '' load/store operations
 '' these look like:
@@ -1014,6 +1017,8 @@ hub_muldiv
 	alts	func3, #multab
 	mov	opdata, 0-0 wz
 if_z	jmp	#handle_mul
+
+handle_plain_call
 	sets	mul_templ, rs1
 	sets	mul_templ+1, rs2
 	mov	mul_templ+2, opdata
@@ -1551,17 +1556,148 @@ compile_ecall
 
 		''
 		'' atomic operations
-		'' for now we're just going to punt on these,
-		'' as the current implementation is single threaded
 		''
 hub_compile_atomic
 		cmp	func3, #2 wz	' check width
 	if_nz	jmp	#illegalinstr	' only 32 bit wide supported
+		'' calculate new func3
+		mov	func3, opdata
+		shr	func3, #29
+		and	func3, #7
 		mov	func2, opdata
 		shr	func2, #27
 		and	func2, #3 wz	' check for lr/sc
-		'' not finished yet...
-		jmp	#illegalinstr
+	if_z	jmp	#do_atomic_op
+		cmp	func3, #0 wz	' for remaining operations, func3 must be 0
+	if_nz	jmp	#illegalinstr
+		cmp	func2, #1 wz
+	if_z	jmp	#do_amoswap
+		cmp	func2, #2 wz
+	if_z	jmp	#do_lr
+do_sc
+		mov	func3, #10
+		jmp	#do_atomic_op
+do_amoswap
+		mov	func3, #8
+		jmp	#do_atomic_op
+do_lr
+		mov	func3, #9
+do_atomic_op
+		shl	func3, #2	' convert to long index
+		add	func3, ##@atomic_op_table
+		rdlong	opdata, func3		' get the call instruction to use
+		jmp	#handle_plain_call
+
+atomic_op_table
+		call	#\imp_amoadd	' 0
+		call	#\imp_amoxor	' 1
+		call	#\imp_amoor	' 2
+		call	#\imp_amoand	' 3
+		call	#\imp_amomin	' 4
+		call	#\imp_amomax	' 5
+		call	#\imp_amominu	' 6
+		call	#\imp_amomaxu	' 7
+		call	#\imp_amoswap	' 8
+		call	#\imp_lr	' 9
+		call	#\imp_sc	' 10
+
+imp_amoadd
+.lock_mem
+		locktry	#7 wc
+  if_nc		jmp	#.lock_mem
+  		rdlong	rd, rs1
+		add	rs2, rd
+		wrlong	rs2, rs1
+		lockrel	#7
+  _ret_		andn	valid_reservation, #1
+
+imp_amoxor
+.lock_mem
+		locktry	#7 wc
+  if_nc		jmp	#.lock_mem
+  		rdlong	rd, rs1
+		xor	rs2, rd
+		wrlong	rs2, rs1
+		lockrel	#7
+  _ret_		andn	valid_reservation, #1
+
+imp_amoor
+.lock_mem
+		locktry	#7 wc
+  if_nc		jmp	#.lock_mem
+  		rdlong	rd, rs1
+		or	rs2, rd
+		wrlong	rs2, rs1
+		lockrel	#7
+  _ret_		andn	valid_reservation, #1
+
+imp_amoand
+.lock_mem
+		locktry	#7 wc
+  if_nc		jmp	#.lock_mem
+  		rdlong	rd, rs1
+		and	rs2, rd
+		wrlong	rs2, rs1
+		lockrel	#7
+  _ret_		andn	valid_reservation, #1
+
+imp_amomax
+.lock_mem
+		locktry	#7 wc
+  if_nc		jmp	#.lock_mem
+  		rdlong	rd, rs1
+		fges	rs2, rd
+		wrlong	rs2, rs1
+		lockrel	#7
+  _ret_		andn	valid_reservation, #1
+
+imp_amomin
+.lock_mem
+		locktry	#7 wc
+  if_nc		jmp	#.lock_mem
+  		rdlong	rd, rs1
+		fles	rs2, rd
+		wrlong	rs2, rs1
+		lockrel	#7
+  _ret_		andn	valid_reservation, #1
+
+imp_amomaxu
+.lock_mem
+		locktry	#7 wc
+  if_nc		jmp	#.lock_mem
+  		rdlong	rd, rs1
+		fge	rs2, rd
+		wrlong	rs2, rs1
+		lockrel	#7
+  _ret_		andn	valid_reservation, #1
+
+imp_amominu
+.lock_mem
+		locktry	#7 wc
+  if_nc		jmp	#.lock_mem
+  		rdlong	rd, rs1
+		fle	rs2, rd
+		wrlong	rs2, rs1
+		lockrel	#7
+  _ret_		andn	valid_reservation, #1
+
+imp_amoswap
+.lock_mem
+		locktry	#7 wc
+    if_nc	jmp	#.lock_mem
+  		rdlong	rd, rs1
+		wrlong	rs2, rs1
+		lockrel	#7
+    _ret_	andn	valid_reservation, #1
+
+imp_lr
+		locktry	#7 wc
+  _ret_		bitc	valid_reservation, #0
+
+imp_sc
+		bitl	valid_reservation, #0 wcz	' carry set to original value of bit 0
+    if_c	wrlong	rs2, rs1
+    _ret_	wrc	rd
 
 		''
 		''
