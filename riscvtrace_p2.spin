@@ -2,6 +2,9 @@
 '#define USE_DISASM
 '#define USE_LUT_CACHE
 
+#define ATOMIC_LOCK 15
+#define CACHE_LOCK  14
+
 #ifndef USE_LUT_CACHE
 '' define one of CACHE_SIZE or TOTAL_SIZE
 '' TOTAL_SIZE will define the total size of interpreter + cache
@@ -1603,101 +1606,103 @@ atomic_op_table
 
 imp_amoadd
 .lock_mem
-		locktry	#7 wc
+		locktry	#ATOMIC_LOCK wc
   if_nc		jmp	#.lock_mem
   		rdlong	rd, rs1
 		add	rs2, rd
 		wrlong	rs2, rs1
-		lockrel	#7
+		lockrel	#ATOMIC_LOCK
   _ret_		andn	valid_reservation, #1
 
 imp_amoxor
 .lock_mem
-		locktry	#7 wc
+		locktry	#ATOMIC_LOCK wc
   if_nc		jmp	#.lock_mem
   		rdlong	rd, rs1
 		xor	rs2, rd
 		wrlong	rs2, rs1
-		lockrel	#7
+		lockrel	#ATOMIC_LOCK
   _ret_		andn	valid_reservation, #1
 
 imp_amoor
 .lock_mem
-		locktry	#7 wc
+		locktry	#ATOMIC_LOCK wc
   if_nc		jmp	#.lock_mem
   		rdlong	rd, rs1
 		or	rs2, rd
 		wrlong	rs2, rs1
-		lockrel	#7
+		lockrel	#ATOMIC_LOCK
   _ret_		andn	valid_reservation, #1
 
 imp_amoand
 .lock_mem
-		locktry	#7 wc
+		locktry	#ATOMIC_LOCK wc
   if_nc		jmp	#.lock_mem
   		rdlong	rd, rs1
 		and	rs2, rd
 		wrlong	rs2, rs1
-		lockrel	#7
+		lockrel	#ATOMIC_LOCK
   _ret_		andn	valid_reservation, #1
 
 imp_amomax
 .lock_mem
-		locktry	#7 wc
+		locktry	#ATOMIC_LOCK wc
   if_nc		jmp	#.lock_mem
   		rdlong	rd, rs1
 		fges	rs2, rd
 		wrlong	rs2, rs1
-		lockrel	#7
+		lockrel	#ATOMIC_LOCK
   _ret_		andn	valid_reservation, #1
 
 imp_amomin
 .lock_mem
-		locktry	#7 wc
+		locktry	#ATOMIC_LOCK wc
   if_nc		jmp	#.lock_mem
   		rdlong	rd, rs1
 		fles	rs2, rd
 		wrlong	rs2, rs1
-		lockrel	#7
+		lockrel	#ATOMIC_LOCK
   _ret_		andn	valid_reservation, #1
 
 imp_amomaxu
 .lock_mem
-		locktry	#7 wc
+		locktry	#ATOMIC_LOCK wc
   if_nc		jmp	#.lock_mem
   		rdlong	rd, rs1
 		fge	rs2, rd
 		wrlong	rs2, rs1
-		lockrel	#7
+		lockrel	#ATOMIC_LOCK
   _ret_		andn	valid_reservation, #1
 
 imp_amominu
 .lock_mem
-		locktry	#7 wc
+		locktry	#ATOMIC_LOCK wc
   if_nc		jmp	#.lock_mem
   		rdlong	rd, rs1
 		fle	rs2, rd
 		wrlong	rs2, rs1
-		lockrel	#7
+		lockrel	#ATOMIC_LOCK
   _ret_		andn	valid_reservation, #1
 
 imp_amoswap
 .lock_mem
-		locktry	#7 wc
+		locktry	#ATOMIC_LOCK wc
     if_nc	jmp	#.lock_mem
   		rdlong	rd, rs1
 		wrlong	rs2, rs1
-		lockrel	#7
+		lockrel	#ATOMIC_LOCK
     _ret_	andn	valid_reservation, #1
 
 imp_lr
-		locktry	#7 wc
+		locktry	#ATOMIC_LOCK wc
+		rdlong	rd, rs1
   _ret_		bitc	valid_reservation, #0
 
 imp_sc
 		bitl	valid_reservation, #0 wcz	' carry set to original value of bit 0
     if_c	wrlong	rs2, rs1
-    _ret_	wrc	rd
+    		lockrel	#ATOMIC_LOCK
+    _ret_	wrnc	rd				' return 0 if valid_reservation was 1
 
 		''
 		''
