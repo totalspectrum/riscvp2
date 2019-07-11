@@ -78,7 +78,7 @@
 #define _pin(pin)                                     \
     ({                                                  \
         unsigned long v;                                \
-        __asm__ __volatile__ (".insn s 0x0b, 7, %0, 0(%1)" \
+        __asm__ __volatile__ (".insn s CUSTOM_0, 7, %0, 0(%1)" \
                               : "=r"(v) : "r"(pin) );        \
         v;                                                  \
     })
@@ -94,6 +94,12 @@
 #define _pinnot(pin) \
     ({                                                  \
         __asm__ __volatile__ (".insn sb CUSTOM_0, 2, x0, -0x400(%0)" \
+                              : : "r"(pin) );             \
+    })
+
+#define _pinrnd(pin) \
+    ({                                                  \
+        __asm__ __volatile__ (".insn sb CUSTOM_0, 2, x0, -0x800(%0)" \
                               : : "r"(pin) );             \
     })
 
@@ -144,7 +150,7 @@
 #define _rdpin(pin)                                     \
     ({                                                  \
         unsigned long v;                                \
-        __asm__ __volatile__ (".insn s 0x0b, 7, %0, 0x400(%1)" \
+        __asm__ __volatile__ (".insn s CUSTOM_0, 7, %0, 0x400(%1)" \
                               : "=r"(v) : "r"(pin) );        \
         v;                                                  \
     })
