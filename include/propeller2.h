@@ -114,12 +114,12 @@
                               : : "r"(pin) );             \
     })
 
-#define dirl_(pin) \
+#define _dirl(pin) \
     ({                                                  \
         __asm__ __volatile__ (".insn sb CUSTOM_0, 5, x0, 0x000(%0)" \
                               : : "r"(pin) );             \
     })
-#define dirh_(pin) \
+#define _dirh(pin) \
     ({                                                  \
         __asm__ __volatile__ (".insn sb CUSTOM_0, 5, x0, 0x400(%0)" \
                               : : "r"(pin) );             \
