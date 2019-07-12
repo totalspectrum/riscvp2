@@ -198,6 +198,7 @@
     })
 
 
-#define _clkfreq (*(unsigned int *)0x14)
+#define _clockfreq() (*(unsigned int *)0x14)
+#define _clockmode() (*(unsigned int *)0x18)
 
 #endif
