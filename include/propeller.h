@@ -18,4 +18,6 @@
 #define cognew(a, b)     _cognew(a, b)
 #define cogstop(a)       _cogstop(a)
 
+#define _clkfreq _clockfreq()
+
 #endif
