@@ -2157,11 +2157,14 @@ syscall_read
 doread
 		call	#\ser_rx
 		cmps	uart_char, #0 wcz
-	if_b	ret
+	if_b	jmp	#doread
+		cmp	uart_char, #13 wz
+	if_z	mov	uart_char, #10
 		wrbyte	uart_char, x11
 		add	x11, #1
 		add	x10, #1
-		djnz	x12, #doread
+		cmp	uart_char, #10 wz
+	if_nz	djnz	x12, #doread
 		ret
 
 syscall_exit
