@@ -1712,13 +1712,6 @@ hub_compressed_instr
 		sub	ptrb, #2	' adjust for compressed instruction
 		andn	opcode, SIGNWORD wz
 	if_z	jmp	#c_illegalinstr
-#ifdef DEBUG_ENGINE
-		call	#ser_nl
-		mov	uart_char, #"<"
-		call	#ser_tx
-		mov	uart_num, opcode
-		call	#ser_hex
-#endif
 		mov	temp, opcode
 		mov	dest, opcode
 		shr	dest, #13
@@ -1726,10 +1719,6 @@ hub_compressed_instr
 		and	temp, #3
 		shl	temp, #3
 		or	dest, temp	' dest now contains opcode | func3
-#ifdef DEBUG_ENGINE
-		mov	uart_num, dest
-		call	#ser_hex
-#endif
 		shl	dest, #2
 		add	dest, ##@rvc_jmptab
 		jmp	dest
