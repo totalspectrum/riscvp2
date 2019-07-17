@@ -103,9 +103,8 @@ jit_trampoline_set_pc
 		'' up
 		'' BEWARE: pb can come in with some high bits set
 		'' so don't rely on those bits
+		tjz	pb, jit_orig_cachepc+0		' if pb == 0, just go to the cache
 		and	pb, jit_loc_mask wz
-''	if_z	jmp	#goto_cache
-	if_z	jmp	jit_orig_cachepc+0	' indirect jump to the cached code
 		
 		'' OK, pb points at the instruction to fix up now
 		'' be careful to copy over the condition bits too
