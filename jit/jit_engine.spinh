@@ -61,7 +61,7 @@ jit_reinit_cache
    jit_trampoline is similar, but if it sees a cache hit then it
    fixes up our caller to avoid future cache lookups (does a
    direct cache to cache jump). This is for internal use, and relies
-   on calld to set the pa register to the caller's address.
+   on calld to set the pb register to the caller's address.
 
    Trashes:
      This is not intended to be used as a subroutine
@@ -104,7 +104,8 @@ jit_trampoline_set_pc
 		'' BEWARE: pb can come in with some high bits set
 		'' so don't rely on those bits
 		and	pb, jit_loc_mask wz
-	if_z	jmp	#goto_cache
+''	if_z	jmp	#goto_cache
+	if_z	jmp	jit_orig_cachepc+0	' indirect jump to the cached code
 		
 		'' OK, pb points at the instruction to fix up now
 		'' be careful to copy over the condition bits too
@@ -219,16 +220,6 @@ jit_branch_alt	long	0
 
 jit_emit_direct_branch
 		mov	jit_branch_alt, ptrb
-
-#ifdef NEVER
-		'' theoretically this would improve performance by speeding up the
-		'' default case (not taken forward branch)
-		'' in practice it seems to slow things down
-		cmp	ptrb, jit_branch_dest wcz	' check for forwards branch
-	if_be	xor	jit_condition, #$f
-	if_be	mov	jit_branch_alt, jit_branch_dest
-	if_be	mov	jit_branch_dest, ptrb
-#endif
 
 jit_do_emit
 		shl	jit_condition, #28 wz	' put condition in top part
