@@ -9,9 +9,13 @@
 '' define one of CACHE_SIZE or TOTAL_SIZE
 '' TOTAL_SIZE will define the total size of interpreter + cache
 '' CACHE_SIZE will just give that much cache
+'' NOTE: if you want to increase cache to more than 64K you will have to
+'' modify the alignment; we only have 12 bits for cache offset, and align
+'' to a 16 byte (4 bit) boundary
 '#define CACHE_SIZE 8192
 '#define CACHE_SIZE 32768
 #define TOTAL_SIZE 32768
+'#define TOTAL_SIZE 65536
 
 #define AUTO_INLINE
 #endif
