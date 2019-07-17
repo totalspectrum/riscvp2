@@ -175,6 +175,7 @@ if_ae	add	uart_char, #"A"-10
 
 #ifdef DEBUG_ENGINE
 hub_print_newpc
+		call	#ser_nl
 		mov	uart_char, #"="
 		call	#ser_tx
 		mov	uart_num, ptrb

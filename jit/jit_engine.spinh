@@ -151,7 +151,7 @@ goto_cache
 
 		'' OK, we have to compile a new trace
 cache_miss
-#ifdef USE_DISASM
+#ifdef DEBUG_ENGINE
 		call	#hub_print_cachemiss
 #endif
 		' OK, we got a cache miss here
@@ -175,16 +175,15 @@ cache_miss
 		shl	jit_temp, #(20-CACHE_OFFSET_SHIFT)
 		or	jit_temp, ptrb
     		wrlut	jit_temp, jit_instr		' update cached pc
-#ifdef DEBUG_ENGINE_ALL
-		mov	uart_char, #">"
-		call	#ser_tx
-		mov	uart_num, jit_orig_cachepc
-		call	#ser_hex
-#endif
 
 compile_line
 		call	#compile_bytecode_start_line
 compile_loop
+#ifdef USE_DISASM
+		call	#ser_nl
+		mov	uart_num, ptrb
+		call	#ser_hex
+#endif		
 		call	#compile_bytecode
 ' done_instruction
 
@@ -287,18 +286,24 @@ pb_copy	long 0
 
 jit_emit
 #ifdef DEBUG_ENGINE
+
+#ifdef NEVER
 		mov	uart_char, #"+"
 		call	#ser_tx
 		mov	uart_num, pb
 		call	#ser_hex
 		mov	uart_num, jit_cachepc
 		call	#ser_hex
+#endif
+
 #ifdef USE_DISASM
 		'' disassemble the words we are creating
 		call	#ser_nl
 		mov	pb_copy, pb
 		mov	tmp_ptr, jit_instrptr
 emit_dis_loop
+		mov	uart_num, pb
+		call	#ser_hex
 		alts	tmp_ptr, #0
 		mov	dis_instr, 0-0
 		add	tmp_ptr, #1

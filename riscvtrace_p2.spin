@@ -17,6 +17,7 @@
 #define TOTAL_SIZE 32768
 '#define TOTAL_SIZE 65536
 
+'' enable automatic inlining of functions; still experimental
 #define AUTO_INLINE
 #endif
 
@@ -636,7 +637,7 @@ flush_icache_pat
 		'' utility called at start of line
 compile_bytecode_start_line
 #ifdef AUTO_INLINE
-		mov	x1_val, #0
+		neg	x1_val, #1
 #endif		
 	_ret_	neg	ptra_reg, #1
 
@@ -647,10 +648,7 @@ compile_bytecode
 	if_z	neg	ptra_reg, #1
 #ifdef AUTO_INLINE	
 		cmp	rd, #1 wz	' did we just modify the return address?
-	if_nz	test	x0, #1 wc	' clear carry bit (x0 == 0)
-	if_z	test	rd, #1 wc	' now set the carry if Z was set
-		cmp	ptrb, x1_val wz
-   if_c_and_z	mov	x1_val, #0
+	if_z	neg	x1_val, #1
 #endif
 		' fetch the actual RISC-V opcode
 		rdlong	opcode, ptrb++
@@ -842,7 +840,7 @@ post_setup_vec
 		
 #include "jit/util_serial.spin2"
 
-#ifdef USE_DISASM
+#ifdef DEBUG_ENGINE
 #include "jit/util_disasm.spin2"
 #endif
 
@@ -1086,6 +1084,7 @@ hub_jal
 #ifdef AUTO_INLINE
 		cmp	rd, #1 wz	' if x1, save the value
 	if_e	mov	x1_val, ptrb
+	if_e	mov	rd, #0
 #endif	
 		mov	immval, opcode
 		sar	immval, #20	' sign extend, get some bits in place
@@ -1109,7 +1108,7 @@ hub_jal
 hub_jalr
 #ifdef AUTO_INLINE
 		cmp	rs1, #1 wz
-	if_z	tjnz	x1_val, #skip_ret
+	if_z	tjnf	x1_val, #skip_ret
 #endif
 		' set up offset in ptrb
 		and	immval, LOC_MASK wz
@@ -1875,25 +1874,41 @@ c_jr
 		' if jalr, then
 		' emit code to save ptrb in x1
 		testb	opcode, #12 wc
-	if_c	mov    immval, ptrb
-	if_c	mov    dest, #x1
-	if_c	call   #emit_mvi
+#ifdef AUTO_INLINE		
+	if_c	neg	x1_val, #1
+#endif	
+	if_c	mov	immval, ptrb
+	if_c	mov    	dest, #x1
+	if_c	call   	#emit_mvi
 
 		' generate code to copy final destination into ptrb
 		sets	imp_jalr_nooff, rd
 		mov	jit_instrptr, #imp_jalr_nooff
 		call	#emit1
-
+#ifdef AUTO_INLINE
+		cmp	rd, #x1 wz
+	if_z	tjnf	x1_val, #c_skip_call
+#endif
 		' now generate the branch
 		mov	jit_condition, #$f
 		jmp	#jit_emit_indirect_branch
-		
+#ifdef AUTO_INLINE
+c_skip_call
+		mov	ptrb, x1_val
+		ret
+#endif
 
 c_jal
 		' emit code to save ptrb in x1
+#ifdef AUTO_INLINE
+		mov	x1_val, ptrb
+#endif		
 		mov    immval, ptrb
 		mov    dest, #x1
 		call   #emit_mvi
+#ifdef AUTO_INLINE		
+		mov	rd, #0
+#endif		
 		'' fall through
 c_j
 		mov	immval, opcode
@@ -1917,10 +1932,15 @@ c_j
 		bitc	immval, #11
 		signx	immval, #11
 		sub	immval, #2
+#ifdef AUTO_INLINE
+		add	ptrb, immval
+		ret
+#else		
 		add	immval, ptrb
 		mov	jit_branch_dest, immval
 		mov	jit_condition, #$f
 		jmp	#jit_emit_direct_branch
+#endif		
 c_lui
 		mov	rd, opcode
 		shr	rd, #7
