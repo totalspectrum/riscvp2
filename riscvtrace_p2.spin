@@ -12,6 +12,8 @@
 '#define CACHE_SIZE 8192
 '#define CACHE_SIZE 32768
 #define TOTAL_SIZE 32768
+
+#define AUTO_INLINE
 #endif
 
 {{
@@ -534,7 +536,9 @@ opdata
 divflags	long	0
 
 ptra_reg	long	-1	' register contained in ptra
-
+#ifdef AUTO_INLINE
+x1_val		long	0	' address in x1, if known
+#endif
 	''
 	'' opcode tables
 	''
@@ -627,6 +631,9 @@ flush_icache_pat
 		''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 		'' utility called at start of line
 compile_bytecode_start_line
+#ifdef AUTO_INLINE
+		mov	x1_val, #0
+#endif		
 	_ret_	neg	ptra_reg, #1
 
 		'' compile one opcode
@@ -634,6 +641,13 @@ compile_bytecode
 		' if last instruction modified ptra_reg, then invalidate it
 		cmp	rd, ptra_reg wz
 	if_z	neg	ptra_reg, #1
+#ifdef AUTO_INLINE	
+		cmp	rd, #1 wz	' did we just modify the return address?
+	if_nz	test	x0, #1 wc	' clear carry bit (x0 == 0)
+	if_z	test	rd, #1 wc	' now set the carry if Z was set
+		cmp	ptrb, x1_val wz
+   if_c_and_z	mov	x1_val, #0
+#endif
 		' fetch the actual RISC-V opcode
 		rdlong	opcode, ptrb++
 		test	opcode, #3 wcz
@@ -1065,7 +1079,10 @@ hub_jal
 	if_ne	mov	immval, ptrb	' get return address
 	if_ne	mov	dest, rd
 	if_ne	call	#emit_mvi	' move into rd
-
+#ifdef AUTO_INLINE
+		cmp	rd, #1 wz	' if x1, save the value
+	if_e	mov	x1_val, ptrb
+#endif	
 		mov	immval, opcode
 		sar	immval, #20	' sign extend, get some bits in place
 		and	immval, Jmask
@@ -1075,12 +1092,21 @@ hub_jal
 		or	immval, temp
 		andn	immval, #1  	' clear low bit
 		muxc	immval, ##(1<<11)
+#ifdef AUTO_INLINE
+		add	ptrb, immval
+	_ret_	sub	ptrb, #4
+#else
 		add	immval, ptrb	' calculate branch target
 		mov	jit_condition, #$F	    ' unconditional jump
 		sub	immval, #4     	' adjust for PC offset
 		jmp	#issue_branch_cond
+#endif
 
 hub_jalr
+#ifdef AUTO_INLINE
+		cmp	rs1, #1 wz
+	if_z	tjnz	x1_val, #skip_ret
+#endif
 		' set up offset in ptrb
 		and	immval, LOC_MASK wz
 	if_nz	jmp	#.need_offset
@@ -1103,6 +1129,11 @@ hub_jalr
 		' and emit the indirect branch code
 		mov	jit_condition, #$f
 		jmp	#jit_emit_indirect_branch
+#ifdef AUTO_INLINE
+skip_ret
+		mov	ptrb, x1_val
+	_ret_	mov	x1_val, #0
+#endif
 
 hub_condbranch		
 		test	func3, #%100 wz
