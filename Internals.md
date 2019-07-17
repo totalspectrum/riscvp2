@@ -65,6 +65,7 @@ If `IMM` is -0x800, writes a random value to the DIR register
 wrpin rs1, rs2
 .insn sb CUSTOM_0, 6, rs1, 0x000(rs2)
 ```
+Writes `rs1` to the mode register of smart pin `rs2`, and acknowledges the smart pin.
 
 #### WXPIN
 
@@ -72,6 +73,7 @@ wrpin rs1, rs2
 wxpin rs1, rs2
 .insn sb CUSTOM_0, 6, rs1, 0x400(rs2)
 ```
+Writes `rs1` to the X register of smart pin `rs2`, and acknowledges the smart pin.
 
 #### WYPIN
 
@@ -79,6 +81,7 @@ wxpin rs1, rs2
 wypin rs1, rs2
 .insn sb CUSTOM_0, 6, rs1, -0x800(rs2)
 ```
+Writes `rs1` to the Y register of smart pin `rs2`, and acknowledges the smart pin.
 
 #### RDPIN
 
@@ -86,7 +89,7 @@ wypin rs1, rs2
 rdpin rd, rs2
 .insn s CUSTOM_0, 7, rd, 0x400(rs2)
 ```
-Gets the smart pin result register Z of the pin specified by `rs` into `rd`. Acknowledges the smart pin.
+Gets the smart pin result register Z of the pin specified by `rs2` into `rd`. Acknowledges the smart pin.
 
 #### RQPIN
 
@@ -94,7 +97,7 @@ Gets the smart pin result register Z of the pin specified by `rs` into `rd`. Ack
 rqpin rd, rs2
 .insn s CUSTOM_0, 7, rd, -0x800(rs2)
 ```
-Gets the smart pin result register Z of the pin specified by `rs` into `rd`. Does not acknowledge the smart pin.
+Gets the smart pin result register Z of the pin specified by `rs2` into `rd`. Does not acknowledge the smart pin.
 
 ### COG Control
 
