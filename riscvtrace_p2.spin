@@ -2026,9 +2026,14 @@ c_swsp
 		mov	dest, opcode		
 		sub	dest, #$1fc wc
 	if_c	jmp	#hub_ldst_common
+		mov	temp, dest
+		and	temp, ##$e003
+		cmp	temp, ##$c002 wz
+	if_nz	jmp	#hub_ldst_common
 		rdword	temp2, ptrb
 		cmp	dest, temp2 wz
 	if_nz	jmp	#hub_ldst_common
+		mov	temp, temp2
 
 		'' OK, temp2 *might* be an appropriate instruction for
 		'' pairing
@@ -2057,9 +2062,9 @@ emit_next_mov
 		mov	jit_instrptr, #mov_pat
 		call	#emit1
 		sub	immval, #4 wz
-	if_z	jmp	#end_sequence
 		add	func2, #1
-		cmp	func2, #14 wz
+	if_z	jmp	#end_sequence
+		cmp	func2, #15 wz
 	if_z	jmp	#end_sequence
 		mov	opcode, temp2
 		mov	dest, opcode
@@ -2067,6 +2072,10 @@ emit_next_mov
 	if_c	jmp	#end_sequence
 		rdword	temp2, ptrb
 		cmp	dest, temp2 wz
+	if_nz	jmp	#end_sequence
+		mov	temp, dest
+		and	temp, ##$e003
+		cmp	temp, ##$c002 wz
 	if_z	jmp	#emit_next_mov
 
 end_sequence
