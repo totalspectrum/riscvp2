@@ -542,7 +542,8 @@ divflags	long	0
 
 ptra_reg	long	-1	' register contained in ptra
 #ifdef AUTO_INLINE
-x1_val		long	0	' address in x1, if known
+ra_reg		long	1	' register used for return address
+ra_val		long	0	' address in ra, if known
 #endif
 	''
 	'' opcode tables
@@ -637,7 +638,8 @@ flush_icache_pat
 		'' utility called at start of line
 compile_bytecode_start_line
 #ifdef AUTO_INLINE
-		neg	x1_val, #1
+		neg	ra_reg, #1
+		neg	ra_val, #1
 #endif		
 	_ret_	neg	ptra_reg, #1
 
@@ -647,8 +649,8 @@ compile_bytecode
 		cmp	rd, ptra_reg wz
 	if_z	neg	ptra_reg, #1
 #ifdef AUTO_INLINE	
-		cmp	rd, #1 wz	' did we just modify the return address?
-	if_z	neg	x1_val, #1
+		cmp	rd, ra_reg wz	' did we just modify the return address?
+	if_z	neg	ra_reg, #1
 #endif
 		' fetch the actual RISC-V opcode
 		rdlong	opcode, ptrb++
@@ -1082,9 +1084,9 @@ hub_jal
 	if_ne	mov	dest, rd
 	if_ne	call	#emit_mvi	' move into rd
 #ifdef AUTO_INLINE
-		cmp	rd, #1 wz	' if x1, save the value
-	if_e	mov	x1_val, ptrb
-	if_e	mov	rd, #0
+		mov	ra_reg, rd	' save register and value
+		mov	ra_val, ptrb
+		mov	rd, #0
 #endif	
 		mov	immval, opcode
 		sar	immval, #20	' sign extend, get some bits in place
@@ -1107,8 +1109,8 @@ hub_jal
 
 hub_jalr
 #ifdef AUTO_INLINE
-		cmp	rs1, #1 wz
-	if_z	tjnf	x1_val, #skip_ret
+		cmp	rs1, ra_reg wz
+	if_z	tjnf	ra_val, #skip_ret
 #endif
 		' set up offset in ptrb
 		and	immval, LOC_MASK wz
@@ -1134,8 +1136,8 @@ hub_jalr
 		jmp	#jit_emit_indirect_branch
 #ifdef AUTO_INLINE
 skip_ret
-		mov	ptrb, x1_val
-	_ret_	mov	x1_val, #0
+		mov	ptrb, ra_val
+		ret
 #endif
 
 hub_condbranch		
@@ -1510,10 +1512,10 @@ hub_rdpininstr
 		and	immval, #$1ff wz
 		'' check for nonzero pin offset
 	if_z	jmp	#.skip_imm
-		andn	locptra, LOC_MASK
-		or	locptra, immval
-		sets	addptra, rs1
-		mov	rs1, #ptra		' use ptra as the pin value
+		'' pin is non-zero: for now this is illegal
+		'' (eventually we want to add the offset to
+		'' the pin base)
+		jmp    #illegalinstr
 .skip_imm
 		' never write to x0
 		cmp	rd, #0 wz
@@ -1875,7 +1877,7 @@ c_jr
 		' emit code to save ptrb in x1
 		testb	opcode, #12 wc
 #ifdef AUTO_INLINE		
-	if_c	neg	x1_val, #1
+	if_c	neg	ra_reg, #1
 #endif	
 	if_c	mov	immval, ptrb
 	if_c	mov    	dest, #x1
@@ -1886,22 +1888,22 @@ c_jr
 		mov	jit_instrptr, #imp_jalr_nooff
 		call	#emit1
 #ifdef AUTO_INLINE
-		cmp	rd, #x1 wz
-	if_z	tjnf	x1_val, #c_skip_call
+		cmp	rd, ra_reg wz
+	if_z	tjnf	ra_val, #c_skip_call
 #endif
 		' now generate the branch
 		mov	jit_condition, #$f
 		jmp	#jit_emit_indirect_branch
 #ifdef AUTO_INLINE
 c_skip_call
-		mov	ptrb, x1_val
+		mov	ptrb, ra_val
 		ret
 #endif
 
-c_jal
-		' emit code to save ptrb in x1
+c_jal		' emit code to save ptrb in x1
 #ifdef AUTO_INLINE
-		mov	x1_val, ptrb
+		mov	ra_reg, #1
+		mov	ra_val, ptrb
 #endif		
 		mov    immval, ptrb
 		mov    dest, #x1
