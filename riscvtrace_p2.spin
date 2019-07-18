@@ -608,7 +608,7 @@ custom0tab
 custom1tab
 		long	@hub_coginitinstr
 		long	@hub_singledestinstr
-		long	@illegalinstr
+		long	@hub_stdinstr
 		long	@illegalinstr
 		long	@illegalinstr
 		long	@illegalinstr
@@ -1569,7 +1569,18 @@ hub_singledestinstr
 		testb	immval, #30 wc
 	if_nc	jmp	#emit1
 		jmp	#emit2
-
+hub_stdinstr
+		mov	opdata, jit_cond_mask
+		shr	immval, #5
+		and	immval, #$7f
+		shl	immval, #2
+		setr	opdata, immval
+		cmp	rd, rs1 wz
+	if_nz	call	#emit_mov_rd_rs1
+		setd	opdata, rd
+		sets	opdata, rs2
+		jmp	#emit_opdata_and_ret
+		
 		'' privileged instruction compilation code
 hub_syspriv
 		cmp	rd, #0 wz

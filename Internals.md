@@ -119,6 +119,24 @@ cogstop rs1
 ```
 Stops the COG whose ID is `rs1`.
 
+### General P2 instructions
+
+These are escapes to allow general P2 instructions to be executed. Some of them are used to implement the instructions listed above.
+
+#### One Operand instructions
+
+```
+.insn i CUSTOM_1, 1, rd, <op>(rs1)
+```
+Executes the P2 instruction with opcode `0b1101011` (the block of single operand instructions beginning with HUBSET). The low 9 bits of <op> are placed in the S field to select the operation to perform. The D field is set to `rd`. Before the instruction, `rs1` is copied to `rd` to initialize it (if necessary).
+
+#### Two Operand instructions
+
+```
+.insn r CUSTOM_1, 2, <op>, rd, rs1, rs2
+````
+Executes the P2 instruction with opcode <op> (a 7 bit value). The C, Z, and I bits are all set to 0, and the condition bits are set to all 1. The destination field is set to `rd` and the source field to `rs2`. Before the instruction `rs1` is moved into `rd` (if necessary).
+
 ## Resources used
 
 The whole of COG and LUT memory in any COG running the RISC-V engine are used by the JIT compiler. (For now only one COG, COG 0, does this, but someday this may change).

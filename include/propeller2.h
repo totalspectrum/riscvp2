@@ -225,6 +225,31 @@
         v;                                                  \
     })
 
+#define _rev(a)                                         \
+    ({                                                  \
+        unsigned long v;                                \
+        __asm__ __volatile__ (".insn i CUSTOM_1, 1, %0, 0x69(%1)" \
+                              : "=r"(v) : "r"(a)  );    \
+        v;                                                  \
+    })
+
+#define _popcount(a)                                   \
+    ({                                                  \
+        unsigned long v;                                \
+        __asm__ __volatile__ (".insn r CUSTOM_1, 2, 0x3d, %0, %0, %1" \
+                              : "=r"(v) : "r"(a)  );    \
+        v;                                                  \
+    })
+
+#define _encod(a)                                       \
+    ({                                                  \
+        unsigned long v;                                \
+        __asm__ __volatile__ (".insn r CUSTOM_1, 2, 0x3c, %0, %0, %1" \
+                              : "=r"(v) : "r"(a)  );    \
+        v;                                                  \
+    })
+
+#define _clz(aorig) ({ unsigned long a = (aorig); (a == 0) ? 32 : 31 - _encod(a); })
 
 #define _clockfreq() (*(unsigned int *)0x14)
 #define _clockmode() (*(unsigned int *)0x18)
