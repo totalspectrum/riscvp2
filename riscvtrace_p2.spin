@@ -70,7 +70,7 @@ DAT
 		org 0
 		'' initial COG boot code
 		cogid	   pa
-		setq	   #0
+setq_instr	setq	   #0
 		coginit	   pa, #@enter
 		' config area
 		orgh $10
@@ -113,16 +113,12 @@ x20		long	0[12]
 x32
 opcode		long	0
 
-uart_num	long	0
 uart_char	long	0
+uart_num	long	0
 uart_str	long	0
-uart_temp	long	0
 
 info2
-dis_temp2	long	0
-dis_temp1	long	0
 dis_ptr		long	0
-dis_cnt		long	0
 cycleh		long	0
 lastcnt		long	0
 chfreq		long	$80000000
@@ -528,15 +524,10 @@ pinsetinstr
 		jmp	#\hub_pinsetinstr
 '=========================================================================
 		'' VARIABLES
-temp		long 0
-dest		long 0
-
 rd		long	0
 rs1		long	0
 rs2		long	0
 immval		long	0
-func3		long	0
-func2		long	0
 opdata
 divflags	long	0
 
@@ -694,26 +685,42 @@ compile_bytecode
 
 #include "jit/jit_engine.spinh"
 
-jit_instrptr	long	0
-jit_instr	long	0
 jit_cacheptr	long	0
 jit_cachepc	long	0
 jit_orig_cachepc
 		long	0
 jit_orig_ptrb	long	0
-jit_temp	long	0
-jit_temp2	long	0
-jit_condition	long	0
 
-dis_instr	long	0
-
-dummy		res	32 ' can fit 47 in
+dummy		res	32 ' reserved for floating point registers
 
 #ifdef DEBUG_ENGINE
-		fit	$1f0
-#else
 		fit	$1e0
+#else
+		fit	$1d0
 #endif
+
+		' scratch registers needed only for the
+		' compiler
+		org	$1e0
+jit_instrptr	res	1
+jit_instr	res	1
+jit_temp	res	1
+jit_temp2	res	1
+jit_condition	res	1
+dis_instr	res	1
+dis_temp2	res	1
+dis_temp1	res	1
+
+dis_cnt		res	1
+uart_temp	res	1
+temp		res	1
+temp2		res	1
+dest		res	1
+func3		res	1
+func2		res	1
+ioptr		res	1
+
+		fit	$1f0
 
 ''
 '' some lesser used routines that can go in HUB memory
@@ -2009,7 +2016,79 @@ c_swsp
 		bitc	immval, #7
 		mov	rs1, #x2
 		mov	func3, #2
-		jmp	#hub_ldst_common
+		cmp	immval, #4 wcz
+	if_be	jmp	#hub_ldst_common
+		cmp	immval, #63 wcz
+	if_a	jmp	#hub_ldst_common
+	
+		'' check for a chain of swsp instructions with
+		'' decrementing offsets and incrementing registers
+		mov	dest, opcode		
+		sub	dest, #$1fc wc
+	if_c	jmp	#hub_ldst_common
+		rdword	temp2, ptrb
+		cmp	dest, temp2 wz
+	if_nz	jmp	#hub_ldst_common
+
+		'' OK, temp2 *might* be an appropriate instruction for
+		'' pairing
+		'' so basically we want to emit a sequence like:
+		''
+		'' mov dummy+31, rd
+		'' mov dummy+30, rd+1
+		'' ...
+		'' mov dummy+C, rd +N
+		'' mov ptra, x2
+		'' setq #N
+		'' wrlong dummy+C, ptra(immval-4*N)
+		''
+		mov	ioptr, #$1ef
+		mov	func2, #0	' iser func2 for extra value for setq
+		sets	mov_pat, rd
+		setd	mov_pat, ioptr
+		mov	jit_instrptr, #mov_pat
+		call	#emit1
+emit_next_mov
+		add	ptrb, #2
+		add	rd, #1
+		sub	ioptr, #1
+		sets	mov_pat, rd
+		setd	mov_pat, ioptr
+		mov	jit_instrptr, #mov_pat
+		call	#emit1
+		sub	immval, #4 wz
+	if_z	jmp	#end_sequence
+		add	func2, #1
+		cmp	func2, #14 wz
+	if_z	jmp	#end_sequence
+		mov	opcode, temp2
+		mov	dest, opcode
+		sub	dest, #$1fc wc
+	if_c	jmp	#end_sequence
+		rdword	temp2, ptrb
+		cmp	dest, temp2 wz
+	if_z	jmp	#emit_next_mov
+
+end_sequence
+		cmp	ptra_reg, #x2 wz
+	if_nz	mov	ptra_reg, #x2
+	if_nz	sets	mov_to_ptra, #x2
+	if_nz	mov	jit_instrptr, #mov_to_ptra
+	if_nz	call	#emit1
+		rdlong	temp, #@setq_instr	' setq #0
+		setd	temp, func2
+		mov	jit_instrptr, #temp
+		call	#emit1
+
+		' now emit rdlong
+		shr	immval, #2
+		or	immval, #%1000_00000 ' SUB mode for ptra[immval]
+		bith	opdata, #IMM_BITNUM
+		sets	opdata, immval
+		setd	opdata, ioptr
+		mov	jit_instrptr, #opdata
+		mov	rd, #0		' do not erase ra info
+		jmp	#emit1
 c_lwsp
 		mov	func3, #2
 		mov	rd, opcode
