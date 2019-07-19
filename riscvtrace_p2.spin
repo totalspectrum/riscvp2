@@ -19,10 +19,10 @@
 
 '' enable automatic inlining of functions; still experimental
 #define AUTO_INLINE
-'' enable a second set of tags in HUB
-#define LVL2_CACHE_TAGS lvl2_tags
 #endif
 
+'' enable a second set of tags in HUB
+#define LVL2_CACHE_TAGS lvl2_tags
 {{
    RISC-V Emulator for Parallax Propeller
    Copyright 2017-2019 Total Spectrum Software Inc.
@@ -2434,7 +2434,7 @@ syscall_gettimeofday
 		alignl
 #ifdef LVL2_CACHE_TAGS
 lvl2_tags
-		long	0[512]
+		long	0[CACHE_TAG_SIZE]
 #endif
 #ifdef TOTAL_SIZE
 
