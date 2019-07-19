@@ -19,6 +19,8 @@
 
 '' enable automatic inlining of functions; still experimental
 #define AUTO_INLINE
+'' enable a second set of tags in HUB
+#define LVL2_CACHE_TAGS lvl2_tags
 #endif
 
 {{
@@ -2430,6 +2432,10 @@ syscall_gettimeofday
 '' cache memory
 		orgh
 		alignl
+#ifdef LVL2_CACHE_TAGS
+lvl2_tags
+		long	0[512]
+#endif
 #ifdef TOTAL_SIZE
 
 START_OF_CACHE

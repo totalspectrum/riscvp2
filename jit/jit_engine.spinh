@@ -35,6 +35,10 @@
 #endif
 #define CACHE_IGNORE_BITS 1
 
+#ifdef LVL2_CACHE_TAGS
+lvl2_tag_ptr	long	@LVL2_CACHE_TAGS
+#endif
+
 { Initialize the cache
   Must be called from VM startup, and is called again whenever the
   cache overflows.
@@ -50,6 +54,10 @@ jit_reinit_cache
 	wrlut	jit_temp, pb
 	add	pb, #1
 .endloop
+#ifdef LVL2_CACHE_TAGS
+       setq2	#(CACHE_TAG_SIZE-1)
+       wrlong	0, lvl2_tag_ptr
+#endif
  _ret_	mov	jit_cachepc, jit_base_of_cache_mem
 	
 {
@@ -91,6 +99,7 @@ jit_trampoline_set_pc
 		cmp	jit_temp, ptrb wz		' does it match our PC?
     if_nz	jmp	#cache_miss 		' if not in cache, recompile
 
+do_cache_hit
     		'' code for a cache hit
 		'' if a cache hit, just load the cached address
 		'' into orig_cachepc
@@ -149,13 +158,33 @@ jit_trampoline_set_pc
 goto_cache
 		jmp	jit_orig_cachepc+0	' indirect jump to the cached code
 
-		'' OK, we have to compile a new trace
+		' OK, we got a cache miss here
+		' so we have to compile a new trace
 cache_miss
+		' check for cache thrashing, where code is in cache but its
+		' tag is not
+#ifdef LVL2_CACHE_TAGS
+		mov	temp2, jit_instr
+		shl	temp2, #2
+		add	temp2, lvl2_tag_ptr
+		rdlong	jit_temp, temp2
+		mov	temp, jit_temp
+		and	temp, jit_loc_mask
+		
+		cmp	temp, ptrb wz
+	if_nz	jmp	#real_cache_miss
+	
+		' swap the tags in RAM and LUT
+		wrlong	jit_orig_cachepc, temp2
+		mov	jit_orig_cachepc, jit_temp
+		wrlut	jit_orig_cachepc, jit_instr
+		jmp	#do_cache_hit
+real_cache_miss
+#endif
+
 #ifdef DEBUG_ENGINE
 		call	#hub_print_cachemiss
 #endif
-		' OK, we got a cache miss here
-		' so we have to compile a new trace
 
 		' if the cache is full, flush it
 		mov	jit_temp2, jit_top_of_cache_mem
@@ -170,6 +199,14 @@ cache_miss
 #endif		
 		mov	jit_orig_cachepc, jit_cachepc	' save the starting cachepc
 		' update cache tag
+#ifdef LVL2_CACHE_TAGS
+		' save the old LUT tag in HUB
+		mov	temp2, jit_instr
+		shl	temp2, #2
+		add	temp2, lvl2_tag_ptr
+		rdlut	temp, jit_instr
+		wrlong	temp, temp2
+#endif		
 		mov	jit_temp, jit_orig_cachepc
 		sub	jit_temp, jit_base_of_cache_mem
 		shl	jit_temp, #(20-CACHE_OFFSET_SHIFT)
