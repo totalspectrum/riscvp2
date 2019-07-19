@@ -110,30 +110,30 @@ __riscv_restore_11:
 __riscv_restore_10:
 __riscv_restore_9:
 __riscv_restore_8:
-	lw	s10,0(sp)
-	lw	s9,4(sp)
-	lw	s8,8(sp)
 	lw	s7,12(sp)
+	lw	s8,8(sp)
+	lw	s9,4(sp)
+	lw	s10,0(sp)
 	addi	sp,sp,16
 
 __riscv_restore_7:
 __riscv_restore_6:
 __riscv_restore_5:
 __riscv_restore_4:
-	lw	s6,0(sp)
-	lw	s5,4(sp)
-	lw	s4,8(sp)
 	lw	s3,12(sp)
+	lw	s4,8(sp)
+	lw	s5,4(sp)
+	lw	s6,0(sp)
 	addi	sp,sp,16
 
 __riscv_restore_3:
 __riscv_restore_2:
 __riscv_restore_1:
 __riscv_restore_0:
-	lw	s2,0(sp)
-	lw	s1,4(sp)
-	lw	s0,8(sp)
 	lw	ra,12(sp)
+	lw	s0,8(sp)
+	lw	s1,4(sp)
+	lw	s2,0(sp)
 	addi	sp,sp,16
 	ret
 	

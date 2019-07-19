@@ -691,17 +691,9 @@ jit_orig_cachepc
 		long	0
 jit_orig_ptrb	long	0
 
-dummy		res	32 ' reserved for floating point registers
-
-#ifdef DEBUG_ENGINE
-		fit	$1e0
-#else
-		fit	$1d0
-#endif
 
 		' scratch registers needed only for the
 		' compiler
-		org	$1e0
 jit_instrptr	res	1
 jit_instr	res	1
 jit_temp	res	1
@@ -720,7 +712,12 @@ func3		res	1
 func2		res	1
 ioptr		res	1
 
-		fit	$1f0
+#ifdef DEBUG_ENGINE
+		fit	$1e0
+#else
+		fit	$1d0
+#endif
+
 
 ''
 '' some lesser used routines that can go in HUB memory
@@ -2048,12 +2045,12 @@ c_swsp
 		'' wrlong dummy+C, ptra(immval-4*N)
 		''
 		mov	ioptr, #$1ef
-		mov	func2, #0	' iser func2 for extra value for setq
+		mov	func2, #0	' use func2 for extra value for setq
 		sets	mov_pat, rd
 		setd	mov_pat, ioptr
 		mov	jit_instrptr, #mov_pat
 		call	#emit1
-emit_next_mov
+emit_next_swsp_mov
 		add	ptrb, #2
 		add	rd, #1
 		sub	ioptr, #1
@@ -2063,22 +2060,22 @@ emit_next_mov
 		call	#emit1
 		sub	immval, #4 wz
 		add	func2, #1
-	if_z	jmp	#end_sequence
+	if_z	jmp	#end_swsp_sequence
 		cmp	func2, #15 wz
-	if_z	jmp	#end_sequence
+	if_z	jmp	#end_swsp_sequence
 		mov	opcode, temp2
 		mov	dest, opcode
 		sub	dest, #$1fc wc
-	if_c	jmp	#end_sequence
+	if_c	jmp	#end_swsp_sequence
 		rdword	temp2, ptrb
 		cmp	dest, temp2 wz
-	if_nz	jmp	#end_sequence
+	if_nz	jmp	#end_swsp_sequence
 		mov	temp, dest
 		and	temp, ##$e003
 		cmp	temp, ##$c002 wz
-	if_z	jmp	#emit_next_mov
+	if_z	jmp	#emit_next_swsp_mov
 
-end_sequence
+end_swsp_sequence
 		cmp	ptra_reg, #x2 wz
 	if_nz	mov	ptra_reg, #x2
 	if_nz	sets	mov_to_ptra, #x2
@@ -2089,7 +2086,7 @@ end_sequence
 		mov	jit_instrptr, #temp
 		call	#emit1
 
-		' now emit rdlong
+		' now emit wrlong
 		shr	immval, #2
 		or	immval, #%1000_00000 ' SUB mode for ptra[immval]
 		bith	opdata, #IMM_BITNUM
@@ -2116,8 +2113,88 @@ c_lwsp
 		bitc	immval, #5
 		mov	opdata, ldlongdata
 		mov	rs1, #x2
-		jmp	#hub_ldst_common
 
+		' check for a sequence of ldsw x, N(sp)
+		' where x is increasing and N decreasing;
+		' this is something gcc generates
+		cmp	rd, #2 wcz
+	if_be	jmp	#hub_ldst_common
+		cmp	immval, #4 wcz
+	if_be	jmp	#hub_ldst_common
+		cmp	immval, #64 wcz
+	if_ae	jmp	#hub_ldst_common
+	
+		mov	dest, opcode
+		add	dest, #$70
+		rdword	temp2, ptrb
+		cmp	dest, temp2 wz
+	if_nz	jmp	#hub_ldst_common
+		mov	temp, dest
+		and	temp, ##$e003
+		cmp	temp, ##$4002 wz
+	if_nz	jmp	#hub_ldst_common
+
+		' the load sequence is going to look like:
+		' setq #N
+		' rdlong $1e0, ptra[immval-4*N]
+		' mov rd+N, $1e0
+		' mov rd+N-1, $1e1
+		' ...
+		' mov rd, $X
+		mov	ioptr, #$1e0
+		mov	func2, #0	' use func2 to hold count for setq
+emit_next_lwsp_item
+		add	ptrb, #2
+		add	rd, #1
+		add	ioptr, #1
+		sub	immval, #4 wc
+		add	func2, #1
+	if_c	jmp	#end_lwsp_sequence
+		cmp	func2, #15 wz
+	if_z	jmp	#end_lwsp_sequence
+		mov	opcode, temp2
+		mov	dest, opcode
+		add	dest, #$70
+		rdword	temp2, ptrb
+		cmp	dest, temp2 wz
+	if_nz	jmp	#end_lwsp_sequence
+		mov	temp, dest
+		and	temp, ##$e003
+		cmp	temp, ##$4002 wz
+	if_z	jmp	#emit_next_lwsp_item
+
+end_lwsp_sequence
+		cmp	ptra_reg, #x2 wz
+	if_nz	mov	ptra_reg, #x2
+	if_nz	sets	mov_to_ptra, #x2
+	if_nz	mov	jit_instrptr, #mov_to_ptra
+	if_nz	call	#emit1
+		rdlong	temp, #@setq_instr	' setq #0
+		setd	temp, func2
+		mov	jit_instrptr, #temp
+		call	#emit1
+
+		' now emit wrlong
+		shr	immval, #2
+		or	immval, #%1000_00000 ' SUB mode for ptra[immval]
+		bith	opdata, #IMM_BITNUM
+		sets	opdata, immval
+		setd	opdata, #$1e0
+		mov	jit_instrptr, #opdata
+		call	#emit1
+
+		' and the moves
+		mov   ioptr, #$1e0
+lwsp_move_loop
+		mov	rs1, ioptr
+		call	#emit_mov_rd_rs1
+		add	ioptr, #1
+		sub	rd, #1
+		djnf	func2, #lwsp_move_loop
+		
+'		jmp	#illegalinstr
+		ret
+		
 c_sw
 		mov	opdata, swlongdata
 		jmp	#c_lwswcommon

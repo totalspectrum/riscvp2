@@ -82,14 +82,16 @@ p2lut.bin: $(P2SRCS)
 
 
 # our demo programs
+OPT ?= -Os
+
 hello.elf: hello.c
-	$(CC) -T riscvp2.ld -specs=nano.specs -Os -o $@ $<
+	$(CC) -T riscvp2.ld -specs=nano.specs $(OPT) -o $@ $<
 
 hello.binary: hello.elf
 	$(BINPREFIX)objcopy -O binary $< $@
 
 hello-c++.elf: hello.cc
-	$(CXX) -T riscvp2.ld -specs=nano.specs -Os -o $@ $<
+	$(CXX) -T riscvp2.ld -specs=nano.specs $(OPT) -o $@ $<
 
 hello-c++.binary: hello-c++.elf
 	$(BINPREFIX)objcopy -O binary $< $@
