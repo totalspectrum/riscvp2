@@ -1223,8 +1223,25 @@ hub_compile_lui
 		mov	immval, opcode
 		and	immval, LUI_MASK
 lui_aui_common
+		'' at this point we might want to check for a coming
+		'' addi rd, rd, X
+		'' if there is one, we can fold it in with this operation
 		mov	dest, rd
-		jmp	#emit_mvi	'' return from there
+		rdlong	temp2, ptrb	'' peek ahead at next instruction
+		mov	temp, temp2
+		and	temp, ##$fff00000	' extract immediate
+		or	temp, #$013	'' base addi instruction
+		shl	rd, #7
+		or	temp, rd
+		shl	rd, #8
+		or	temp, rd
+		cmp	temp, temp2 wz	'' check for desired addi instruction
+	if_nz	jmp	#emit_mvi	'' if not equal just emit and continue
+		'' OK, merge the coming addi
+		add    ptrb, #4
+		sar    temp, #20
+		add    immval, temp
+		jmp    #emit_mvi
 		
 hub_slt_func
 		cmp	rd, #0	wz	' if rd == 0, emit nop
