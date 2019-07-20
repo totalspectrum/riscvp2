@@ -19,10 +19,11 @@
 
 '' enable automatic inlining of functions; still experimental
 #define AUTO_INLINE
-#endif
 
 '' enable a second set of tags in HUB
 #define LVL2_CACHE_TAGS lvl2_tags
+#endif
+
 {{
    RISC-V Emulator for Parallax Propeller
    Copyright 2017-2019 Total Spectrum Software Inc.
@@ -191,7 +192,7 @@ notdata		not	0,0
 
 regfunc
 		cmp	rd, #0	wz	' if rd == 0, emit nop
-	if_z	jmp	#emit_nop
+	if_z	jmp	#hub_emit_nop
 
 		testb	opdata, #WC_BITNUM wc 	' check for sar/shr?
 	if_nc	jmp	#nosar
@@ -232,8 +233,7 @@ continue_imm
 		call	#emit_mov_rd_rs1
 		jmp	#emit_big_instr
 check_xor
-		cmp	immval, ALLBITS wz
-	if_nz	jmp	#continue_imm
+		tjnf	immval, #continue_imm ' if immval != -1, go to continue_imm
 		mov	opdata, notdata
 		setd	opdata, rd
 		sets	opdata, rs1
@@ -357,7 +357,6 @@ valid_reservation long 0
 
 SIGNBYTE	long	$FFFFFF00
 SIGNWORD	long	$FFFF0000
-ALLBITS		long	$FFFFFFFF
 
 storeop
 		'' RISC-V has store value in rs2, we want it in rd
@@ -367,7 +366,7 @@ storeop
 		jmp	#hub_ldst_common
 loadop
 		cmp	rd, #0	wz	' if rd == 0, emit nop
-	if_z	jmp	#emit_nop
+	if_z	jmp	#hub_emit_nop
 		jmp	#hub_ldst_common
 		
 
@@ -463,16 +462,6 @@ big_temp_0
 AUG_MASK	long	$ff800000
 
 '
-' emit a no-op (just return)
-'
-emit_nop
-		mov	jit_instrptr, #emit_nop_pat
-		jmp	#emit1
-
-emit_nop_pat
-		or	0,0	' use this for a nop so we can conditionalize it if necessary
-
-'
 ' emit a mov of rs1 to rd
 '
 emit_mov_rd_rs1
@@ -483,8 +472,6 @@ emit_mov_rd_rs1
 		mov	jit_instrptr, #mov_pat
 		jmp	#emit1
 mov_pat		mov	0,0
-
-CONDMASK	long	$f0000000
 
 '=========================================================================
 ' system instructions
@@ -693,9 +680,22 @@ jit_orig_cachepc
 		long	0
 jit_orig_ptrb	long	0
 
+#ifdef DEBUG_ENGINE
+		fit	$1d0
+#else
+		fit	$1c0
+#endif
 
+' indirect branch predictor cache
+  	 	org	$1d0
+brpredict_tag
+		res	8
+brpredict_cache
+		res	8
+		
+		org	$1e0
 		' scratch registers needed only for the
-		' compiler
+		' compiler; these may be overwritten at run time
 jit_instrptr	res	1
 jit_instr	res	1
 jit_temp	res	1
@@ -713,13 +713,6 @@ dest		res	1
 func3		res	1
 func2		res	1
 ioptr		res	1
-
-#ifdef DEBUG_ENGINE
-		fit	$1e0
-#else
-		fit	$1d0
-#endif
-
 
 ''
 '' some lesser used routines that can go in HUB memory
@@ -1040,6 +1033,17 @@ emit_big_instr
 		jmp	#emit1
 
 '
+' emit a no-op
+' nop is a special case in the P2 instruction set (all 0)
+' fortunately, if we end up having to conditionalize the no-op,
+' it'll be compiled as "ror 0,0" and location 0 always contains 0,
+' so it'll still be a no-op
+'
+hub_emit_nop
+		mov	opdata, #0	' nop instruction
+		jmp	#emit_opdata_and_ret
+
+'
 hub_muldiv
 	alts	func3, #multab
 	mov	opdata, 0-0 wz
@@ -1245,7 +1249,7 @@ lui_aui_common
 		
 hub_slt_func
 		cmp	rd, #0	wz	' if rd == 0, emit nop
-	if_z	jmp	#\emit_nop
+	if_z	jmp	#\hub_emit_nop
 
 		'' MUL shares the same opcode space, so look for it
 		mov	temp, opcode
@@ -1303,7 +1307,7 @@ not_cog
 
 		'' write to 0? that's a no-op
 	    	cmp	rd, #0 wz
-	if_z	jmp	#emit_nop
+	if_z	jmp	#hub_emit_nop
 
 		'' $c00 == mcount (cycles counter)
 		cmp	immval, #0 wz
@@ -1852,7 +1856,7 @@ c_addi
 		mov	rd, opcode
 		shr	rd, #7
 		and	rd, #$1f wz
-	if_z	jmp	#emit_nop
+	if_z	jmp	#hub_emit_nop
 		mov	immval, opcode
 		testb	immval, #12 wc
 		muxc	immval, #$80
@@ -1871,7 +1875,7 @@ c_li
 		mov	rd, opcode
 		shr	rd, #7
 		and	rd, #$1f wz
-	if_z	jmp	#emit_nop
+	if_z	jmp	#hub_emit_nop
 		mov	immval, opcode
 		shr	immval, #2
 		and	immval, #$1f
@@ -1981,7 +1985,7 @@ c_lui
 		mov	rd, opcode
 		shr	rd, #7
 		and	rd, #$1f wz
-	if_z	jmp	#emit_nop
+	if_z	jmp	#hub_emit_nop
 		cmp	rd, #2 wz
 	if_z	jmp	#c_addi16sp
 	
@@ -2119,7 +2123,7 @@ c_lwsp
 		mov	rd, opcode
 		shr	rd, #7
 		and	rd, #$1f wz
-	if_z	jmp	#emit_nop
+	if_z	jmp	#hub_emit_nop
 		mov	immval, opcode
 		shr	immval, #4
 		and	immval, #7
@@ -2244,7 +2248,7 @@ c_slli
 		mov	rd, opcode
 		shr	rd, #7
 		and	rd, #$1f wz
-	if_z	jmp	#emit_nop
+	if_z	jmp	#hub_emit_nop
 		mov	immval, opcode
 		shr	immval, #2
 		and	immval, #$1f
