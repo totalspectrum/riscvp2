@@ -19,6 +19,18 @@
 #define PRINT_NONE    0x6
 #define PRINT_LONG_JMP 0x7
 
+disassemble_multi
+		mov	pb_copy, pb
+		mov	tmp_ptr, jit_instrptr
+emit_dis_loop
+		mov	uart_num, pb
+		call	#ser_hex
+		alts	tmp_ptr, #0
+		mov	dis_instr, 0-0
+		add	tmp_ptr, #1
+		call	#disassemble
+		djnz	pb_copy, #emit_dis_loop
+		ret
 disassemble
 	mov	dis_ptr, ##@disasm_tab
 	

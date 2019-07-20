@@ -324,28 +324,10 @@ pb_copy	long 0
 jit_emit
 #ifdef DEBUG_ENGINE
 
-#ifdef NEVER
-		mov	uart_char, #"+"
-		call	#ser_tx
-		mov	uart_num, pb
-		call	#ser_hex
-		mov	uart_num, jit_cachepc
-		call	#ser_hex
-#endif
-
 #ifdef USE_DISASM
 		'' disassemble the words we are creating
-		call	#ser_nl
-		mov	pb_copy, pb
-		mov	tmp_ptr, jit_instrptr
-emit_dis_loop
-		mov	uart_num, pb
-		call	#ser_hex
-		alts	tmp_ptr, #0
-		mov	dis_instr, 0-0
-		add	tmp_ptr, #1
-		call	#disassemble
-		djnz	pb_copy, #emit_dis_loop
+		call	#disassemble_multi
+		
 #endif
 #endif
 #ifdef USE_LUT_CACHE

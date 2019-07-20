@@ -394,8 +394,6 @@ rdpin_table
 		rqpin	0, 0
 		akpin	0		' NOTE: D is 1, only S is used
 		
-LOC_MASK
-		long	$000FFFFF
 dirinstr
 		dirl	0
 testbit_instr
@@ -443,8 +441,8 @@ loc_instr	loc	ptrb, #\0
 emit_pc_immval_minus_4
 		sub	immval, #4
 emit_pc_immval
-		andn	loc_instr, LOC_MASK
-		and	immval, LOC_MASK
+		andn	loc_instr, jit_loc_mask
+		and	immval, jit_loc_mask
 		or	loc_instr, immval
 		mov	jit_instrptr, #loc_instr
 		jmp	#emit1
@@ -971,7 +969,7 @@ big_offset
 		'
 		' here we have a big offset
 		'
-		and	immval, LOC_MASK	' isolate offset 20 bits
+		and	immval, jit_loc_mask	' isolate offset 20 bits
 		sets	opdata, immval
 		setd	opdata, rd
 		bith	opdata, #IMM_BITNUM	' change to imm mode
@@ -1123,14 +1121,14 @@ hub_jalr
 	if_z	tjnf	ra_val, #skip_ret
 #endif
 		' set up offset in ptrb
-		and	immval, LOC_MASK wz
+		and	immval, jit_loc_mask wz
 	if_nz	jmp	#.need_offset
 		sets	imp_jalr_nooff, rs1
 		mov	jit_instrptr, #imp_jalr_nooff
 		call	#emit1
 		jmp	#.load_retaddr
 .need_offset
-		andn	imp_jalr, LOC_MASK
+		andn	imp_jalr, jit_loc_mask
 		or	imp_jalr, immval
 		sets	imp_jalr+1, rs1
 		mov	jit_instrptr, #imp_jalr
@@ -1360,7 +1358,7 @@ not_standard
 		'' if rd is x0, then skip the read
 		cmp	rd, #0 wz
 	if_z	jmp	#skip_csr_read
-		andn	csrvec_read_instr, LOC_MASK
+		andn	csrvec_read_instr, jit_loc_mask
 		or	csrvec_read_instr, immval
 		setd	csrvec_read_instr+1, rd
 		mov	jit_instrptr, #csrvec_read_instr
@@ -1372,7 +1370,7 @@ skip_csr_read
 	if_z	ret
 		add	immval, #4	' move to write vector	
 		'' implement write
-		andn	csrvec_write_instr+1, LOC_MASK
+		andn	csrvec_write_instr+1, jit_loc_mask
 		or	csrvec_write_instr+1, immval
   		sets	csrvec_write_instr, rs1
 		mov	jit_instrptr, #csrvec_write_instr
@@ -1462,7 +1460,7 @@ hub_pinsetinstr
 		'' do we have to output an immediate value?
 	if_z	mov	dest, rs1	' use rs1 as the pin value
 	if_z	jmp   	#.do_op
-		andn	locptra, LOC_MASK
+		andn	locptra, jit_loc_mask
 		or	locptra, immval
 		sets	addptra, rs1  
 		mov	jit_instrptr, #locptra
@@ -1517,7 +1515,7 @@ hub_wrpininstr
 		and	immval, #$1ff wz
 	if_z	mov	dest, rs1     ' use rs1 as the pin value directly
 	if_z	jmp	#.skip_imm
-		andn	locptra, LOC_MASK
+		andn	locptra, jit_loc_mask
 		or	locptra, immval
 		sets	addptra, rs1
 		mov	dest, #ptra		' use ptra as the pin value
@@ -1627,7 +1625,7 @@ compile_ebreak
 		jmp	#illegalinstr	' someday make this different
 compile_ecall
 		mov	opdata, imp_illegal
-		andn	opdata, loc_mask
+		andn	opdata, jit_loc_mask
 		or	opdata, ##@ecall_func
 		jmp	#emit_opdata_and_ret
 
