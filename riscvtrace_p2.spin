@@ -575,8 +575,9 @@ custom0tab
 		'' dirl, drvl, etc. only have dest fields, so
 		'' we cannot do the usual trick of putting the
 		'' address in the source field;
-		'' instead, we use AND and put the instruction bits
-		'' in the dest field
+		'' instead, we use the AND instruction and put
+		'' the actual instruction bits in the dest field
+		''
 		and	%001011000, pinsetinstr		' drvl
 		and	%001010000, pinsetinstr		' fltl
 		and	%001001000, pinsetinstr		' outl
@@ -1449,6 +1450,7 @@ hex_buf
 
 hub_pinsetinstr
 		'' RISC-V has store value in rs2
+		'' pin number in rs1
 		'' adjust immediate for instruction format
 		andn	immval, #$1f
 		or	immval, rd
@@ -1456,28 +1458,45 @@ hub_pinsetinstr
 		mov	func2, immval
 		shr	func2, #10
 		and	func2, #3
-		and	immval, #$1ff wz
-		'' do we have to output an immediate value?
+		and	immval, #$1ff
+		mov	func3, #0
+		cmp	rs1, #x0 wz	' is there a pin offset at all?
+	if_z	mov	dest, immval
+	if_z	bith	func3, #IMM_BITNUM
+	if_z	jmp	#.do_op
+
+		'' do we have to add an offset to the register
+		cmp   immval, #0 wz
 	if_z	mov	dest, rs1	' use rs1 as the pin value
 	if_z	jmp   	#.do_op
 		andn	locptra, jit_loc_mask
 		or	locptra, immval
-		sets	addptra, rs1  
+		sets	addptra, rs1
+		neg	ptra_reg, #1
 		mov	jit_instrptr, #locptra
 		call	#emit1
-		cmp	rs1, #0 wz    		' if rs1 is x0 we do not need the add
-	if_nz	mov	jit_instrptr, #addptra
-	if_nz	call	#emit1
+		mov	jit_instrptr, #addptra
+		call	#emit1
 		mov	dest, #ptra	' use ptra as the pin value	
 .do_op
+#ifdef DEBUG_ENGINE
+		mov	uart_char, #"/"
+		call	#ser_tx
+		mov	uart_num, dest
+		call	#ser_hex
+		mov	uart_num, immval
+		call	#ser_hex
+#endif		
 		' now the actual pin instruction
 		' rs2 contains the value to write to the pin
 		' dest contains the pin number
 		' opdata contains a template like and yy, xx
+		' func has the immediate flag
 		shr	 opdata, #9 	     ' get instruction pattern into the src bits
 		and	 opdata, #$1ff
 		or	 opdata, dirinstr    ' set bits for dir
 		setd	 opdata, dest	     ' set pin to affect
+		or	 opdata, func3
 		
 		'' depending on func2 we have some different operations
 		'' 00 = store value 01 == store !value
