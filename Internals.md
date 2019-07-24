@@ -32,17 +32,21 @@ Makes the pin whose value is in `rs2` an input, and reads one bit from it. The b
 pinw rs1, rs2
 .insn sb CUSTOM_0, 2, rs1, IMM(rs2)
 ```
-Makes the pin whose value is in `rs2` an output, and writes a new value to it. The new value depends
-on the value in `rs1` and the bits in the immediate value `IMM`, as follows:
+Makes the pin whose value is in `rs2` (adjusted by `IMM`) an output, and writes a new value to it. The new value depends on the value in `rs1` and the bits in the immediate value `IMM`, as follows:
 
-If `IMM` is 0, writes the value in `rs1` to the pin.
-If `IMM` is 0x400, writes the inverse of the value in `rs1` to the pin.
-If `IMM` is -0x400, writes the inverse of the current pin value back to the pin
-If `IMM` is -0x800, writes a random value to the pin.
+If `IMM` is 0+OFF, writes the value in `rs1` to the pin.
+If `IMM` is 0x400+OFF, writes the inverse of the value in `rs1` to the pin.
+If `IMM` is -0x400+OFF, writes the inverse of the current pin value back to the pin
+If `IMM` is -0x800+OFF, writes a random value to the pin.
 
-Other bits of `IMM` are reserved for future use.
+where OFF is a 6 bit value giving the base pin number.
 
 A number of interesting effects can be achieved. For example, to set a pin high (like the PASM `PINH` instruction) use `x0` for the source and `0x400` for the `IMM`; `x0` always contains 0, so inverting it will always write a 1.
+
+Example: to create the equivalent of PASM `drvl #9` do:
+```
+.insn sb CUSTOM_0, 2, x0, 9(x0)
+```
 
 #### DIRW
 

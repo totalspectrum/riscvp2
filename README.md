@@ -57,7 +57,7 @@ You may want to also pass `-specs=nano.specs`. This uses a reduced version of th
 
 ### Output
 
-None of the current loaders for P2 can load ELF files, so the output generally must be converted to binary:
+You'll either have to use a loader that understands ELF files (e.g. the one from my p2gcc fork) or else convert the ELF file to binary:
 ```
    riscv-none-embed-objcopy -O binary hello.elf hello.binary
 ```

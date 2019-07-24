@@ -2418,28 +2418,76 @@ writelp
 		call	#ser_tx
 		djnz	x12, #writelp
 		ret
+
+		alignl
+termio_struct
+termio_iflag	long	0
+termio_oflag	long	0
+termio_cflag	long	0
+termio_lflag	long	$02	' ICANON == 0x2
+termio_line	byte	0
+termio_cc
+		byte	3	' 0: VINTER = ^C
+		byte	27	' 1: VQUIT = ^\
+		byte	8	' 2: VERASE = backspace
+		byte	21	' 3: VKILL = ^U erases line
+		byte	4	' 4: VEOF = ^D
+		byte	5	' 5: VTIME
+		byte	6	' 6: VMIN
 		
 syscall_read
 		' x10 == handle (0=stdin, 1=stdout, 2=stderr)
 		' x11 == data buf
 		' x12 == count of bytes
+		' x5 == t0 used to hold lflags
+		' x6 == t1 used to hold new char
+		' x7 == t2 used to hold
 		cmp	x10, #3 wcz
 	if_ae	neg	x10, #EBADF
 	if_ae	ret
 		mov	x10, #0
-doread
+		loc	ptrb, #termio_struct
+		rdlong	x5, ptrb[3]	' x5 has lflags
+		test	x5, #2 wz	' check for canonical mode
+	if_nz	jmp	#do_canonical_read
+
+do_noncanon_read
 		call	#\ser_rx
 		cmps	uart_char, #0 wcz
-	if_b	jmp	#doread
+	if_b	ret
+		wrbyte	uart_char, x11
+		add	x11, #1
+		add	x10, #1
+		djnz	x12, #do_noncanon_read
+		ret
+do_canonical_read
+		call	#\ser_rx
+		cmps	uart_char, #0 wcz
+	if_b	jmp	#do_canonical_read
+	
+		cmp	uart_char, #4	wz ' check for ^D
+	if_z	ret
+
+		call	#\ser_tx
+		
 		cmp	uart_char, #13 wz
 	if_z	mov	uart_char, #10
+	if_z	call	#\ser_tx
+	
+		cmp	uart_char, #8	wz ' check for backspace
+	if_z	jmp	#do_backspace
 		wrbyte	uart_char, x11
 		add	x11, #1
 		add	x10, #1
 		cmp	uart_char, #10 wz
-	if_nz	djnz	x12, #doread
+	if_nz	djnz	x12, #do_canonical_read
 		ret
-
+do_backspace
+		cmp	x10, #0 wz	' any bytes in buffer?
+	if_nz	sub	x11, #1
+	if_nz	sub	x10, #1
+		jmp	#do_canonical_read
+		
 syscall_exit
 		cogid	temp
 		cogstop	temp

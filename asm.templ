@@ -1,7 +1,7 @@
 	# 
 	# simple asm file to include the P2 JIT compiler
 	#
-	.section .interp, "a"
+	.section .jitkernel, "a"
 	.globl _interpstart
 _interpstart:	
 	.incbin "%BINFILE%"
