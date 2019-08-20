@@ -30,7 +30,7 @@ CXX=$(BINPREFIX)g++
 #   p2lut.bin:   compact version with cache in LUT
 #
 
-P2SRCS=riscvtrace_p2.spin jit/jit_engine.spinh jit/util_serial.spin2
+P2SRCS=riscvtrace_p2.spin jit/jit_engine.spinh jit/util_serial.spin2 Double.spin2
 LDSCRIPTS=riscvp2.ld riscvp2_lut.ld
 ASMSCRIPTS=rvp2.s rvp2_lut.s
 

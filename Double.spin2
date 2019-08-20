@@ -1,0 +1,742 @@
+{{
+        Double -- double precision floating point routines for
+	the Propeller
+
+        Copyright (c) 2012 Total Spectrum Software Inc.
+
+        Released under the MIT License (see the end of this file for details)      
+}}
+
+CON
+  FLAG_SIGN      = $1
+  FLAG_ZERO      = $2
+  FLAG_INF	 = $4
+  FLAG_NAN       = $8
+  FLAG_STICKY	 = $10
+
+  FBIAS_EXP	 = 127
+  FMAX_EXP	 = 255
+
+  DBIAS_EXP	 = 1023
+  DMAX_EXP	 = $7ff
+'' mask for double mantissa (high word)
+  DMANTMASK	 = $000FFFFF
+'' mask for float mantissa
+  FMANTMASK   	 = $007FFFFF
+
+  one_4_28	 = $1000_0000
+  NAN_32	 = $7fc0_0000
+  
+DAT
+
+'----------------------------
+' Assembly language routines
+'----------------------------
+
+'----------------------------
+' Main control loop
+'----------------------------
+
+#define r0	x10
+#define	r1	x11
+#define	r2	x12
+#define	r3	x13
+
+		org     $1e0
+
+A		res	1
+Alo		res	1
+Aflag		res	1
+expA		res	1
+
+B		res	1
+Blo		res	1
+Bflag		res	1
+expB		res	1
+
+tmp0		res	1
+tmp1		res	1
+
+count
+Btmp
+		res	1
+
+		fit	$1f0
+
+		orgh
+
+		''
+		'' code to unpack a double in A, Alo
+		'' the IEEE format is 1 bit sign, 11 bit exponent,
+		'' then 52 bit mantissa
+		''
+DUnpack
+		mov	Aflag, #0
+		mov	expA, A
+		shl	expA, #1 wc
+	if_c	or	Aflag, #FLAG_SIGN
+		and	A, ##DMANTMASK	' mask off exponent and sign bit
+		shr	expA, #21 wz	' extract exponent
+	if_z	jmp	#_Ddenorm	' zero or denormal
+		cmp	expA, ##DMAX_EXP wz
+		sub	expA, ##DBIAS_EXP  ' remove bias
+	if_z	jmp	#_Dnan	      	' NaN or Infinity
+
+		'' now shift up to 4.28 to give head room
+		'' we start with 1.20
+		mov	tmp0, Alo
+		shl	A, #8
+		shl	Alo, #8
+		shr	tmp0, #24
+		or	A, tmp0
+		or	A, ##one_4_28	'' or in implied one
+DUnpack_ret
+		ret
+
+		'' normalize a denormalized number
+_Ddenorm
+		sub	expA, ##DBIAS_EXP
+		'' adjust for converting from 1.52 to 1.60
+		add	expA, #(1+8)
+		'' check for all 0
+		mov	 pa, A
+		or 	 pa, Alo wz
+	if_z	sub	 expA, #64
+	if_z	or	 Aflag, #FLAG_ZERO
+	if_z	ret
+		'' not all 0, renormalize
+		jmp    #Normalize
+
+		'' handle NaN or Infinity
+_Dnan
+		mov	expA, ##DMAX_EXP
+		mov	pa, A
+		or	pa, Alo wz	'' check for infinity
+	if_z	or	Aflag, #FLAG_INF
+	if_z	mov	A, ##one_4_28
+	if_nz	or	Aflag, #FLAG_NAN
+	if_nz	add	expA, expA
+		ret
+
+		''
+		'' code to unpack a single precision float in A
+		'' the IEEE format is 1 bit sign, 8 bit exponent,
+		'' then 23 bit mantissa
+		''
+FUnpack
+		mov	Alo, #0
+		mov	Aflag, #0
+		mov	expA, A
+		shl	expA, #1 wc
+	if_c	or	Aflag, #FLAG_SIGN
+		and	A, ##FMANTMASK	' mask off exponent and sign bit
+		shr	expA, #24 wz	' extract exponent
+	if_z	jmp	#_Fdenorm	' zero or denormal
+		cmp	expA, #FMAX_EXP wz
+		sub	expA, #FBIAS_EXP  ' remove bias
+	if_z	jmp	#_Fnan	      	' NaN or Infinity
+
+		'' now shift up to 4.28 to give head room
+		'' we start with 1.23
+		shl	A, #5
+		or	A, ##one_4_28	'' or in implied one
+		ret
+
+		'' handle NaN or Infinity
+_Fnan
+		mov	expA, #FMAX_EXP
+		mov	pa, A
+		or	pa, Alo wz
+	if_z	or	Aflag, #FLAG_INF
+	if_z	mov	A, ##one_4_28
+	if_nz	or	Aflag, #FLAG_NAN
+	if_nz	add	expA, expA
+		ret
+
+		'' normalize a denormalized number
+_Fdenorm
+		sub	expA, #FBIAS_EXP
+		'' adjust for converting from 1.23 to 1.28
+		add	expA, #(1+5)
+		'' check for all 0
+		cmp 	 A, #0 wz
+	if_z	sub	 expA, #511
+	if_z	or	 Aflag, #FLAG_ZERO
+	if_z	ret
+		'' not all 0, renormalize
+		jmp   #Normalize
+
+
+		''
+		'' re-normalize A to 4.28 format
+		''
+Normalize
+		'' check for 0
+		mov	pa, A
+		or	pa, Alo wz
+	if_z	or	Aflag, #FLAG_ZERO
+	if_z	ret
+
+		'' shift down if necessary
+_down
+		test	A, ##$E000_0000 wz
+	if_z	jmp	#_up
+		add	expA, #1
+		shr	A, #1 wc
+		rcr	Alo, #1 wc
+	if_c	or	Aflag, #FLAG_STICKY	' remember we lost bits
+
+		jmp	#_down
+
+_up
+		test   A, ##one_4_28 wz
+	if_nz	ret
+
+		shl    Alo, #1 wc
+		rcl    A, #1
+		sub    expA, #1
+		jmp    #_up
+Normalize_ret
+		ret
+
+		''
+		'' pack a 4.60 number in A,Alo back to an IEEE double
+		'' in r1,r0
+		''
+		'' need to handle rounding and such!
+		''
+		'' input is assumed to be normalized
+		''
+DPack
+		call	#Normalize
+		test	Aflag, #(FLAG_INF|FLAG_NAN|FLAG_ZERO) wz
+	if_nz	jmp	#dpack_excep
+
+		'' fix up exponent
+		add	expA, ##DBIAS_EXP
+		cmps	expA, #0 wz, wc
+	if_be	call	#dpack_denorm
+		fles	expA, ##DMAX_EXP wc
+	if_c	jmp	#dpack_excep
+
+		'' round here
+		'' we clear the implied one first, and allow the
+		'' rounding to propagate up to it
+		andn	A, ##one_4_28
+		test	Aflag, #FLAG_STICKY wz
+
+		'' we have 4.60, we want to round to 4.52
+		'' half of the lsb is therefore 0x80
+		'' we also want to round to nearest even, so
+		'' add a sticky bit if the lsb is set
+		test    Alo, #$100 wc
+    if_nz_or_c	or	Alo, #1
+		add	Alo, #$7f wc
+		addx  	A, #0
+
+dpack_exp
+		'' now shift down to 12.52
+		shr     Alo,#8
+		mov     tmp0,A
+		shr     A,#8
+		shl     tmp0,#24
+		or      Alo,tmp0
+
+		shl	expA, #20
+
+		mov	r0, Alo
+		mov	r1, A
+		add	r1, expA
+
+		shl	Aflag, #31
+		or	r1, Aflag
+DPack_ret
+		ret
+
+		''
+		'' exponent is <=0, so we have to create an IEEE denormalized
+		'' number
+dpack_denorm
+
+		abs	expA, expA
+		add	expA, #1
+_ddlp
+		shr	A, #1 wc
+		rcr	Alo, #1 wc
+	if_c	or	Aflag, #FLAG_STICKY
+		djnz	expA, #_ddlp
+
+		ret
+dpack_excep
+		mov	A, #0
+		mov	Alo, #0
+		mov	expA, ##DMAX_EXP
+		test	Aflag, #FLAG_NAN wz
+	if_nz	mov	A, ##one_4_28
+	if_nz	shr	A, #1
+	if_nz	jmp	#dpack_exp
+		test	Aflag, #FLAG_ZERO wz
+	if_nz	mov	expA, #0
+		jmp	#dpack_exp
+
+		''
+		'' unpack (r1,r0) into A and (r3,r2) into B
+		''
+DUnpack2
+		mov	A,r3
+		mov	Alo,r2
+		call	#DUnpack
+		mov	B,A
+		mov	Blo,Alo
+		mov	Bflag,Aflag
+		mov	expB,expA
+		mov	A,r1
+		mov	Alo,r0
+		jmp	#DUnpack
+
+
+		''
+		'' pack a 4.60 number in A back to an IEEE float
+		'' in r0
+		''
+		'' need to handle rounding and such!
+		''
+		'' input is assumed to be normalized
+		''
+FPack
+		call	#Normalize
+		test	Aflag, #(FLAG_INF|FLAG_NAN|FLAG_ZERO) wz
+	if_nz	jmp	#fpack_excep
+
+		'' fix up exponent
+		add	expA, #FBIAS_EXP
+		cmps	expA, #0 wcz
+	if_be	call	#fpack_denorm
+		fles	expA, #FMAX_EXP wc
+	if_c	jmp	#fpack_excep
+
+		'' round here
+		'' we clear the implied one first, and allow the
+		'' rounding to propagate up to it
+		andn	A, ##one_4_28
+		cmp	Alo,#0 wz
+	if_nz	or	A, #1
+		test	Aflag, #FLAG_STICKY wz
+		'' we have 4.28, we want to round to 4.23
+		'' half of the lsb is therefore 0x10
+		'' we also round to nearest even, so add a sticky
+		'' bit if lsb is set
+		test	A, #$20 wc
+    if_nz_or_c	or	A, #1
+
+		add	A, #$f
+
+fpack_exp
+		'' now shift down to 9.23
+		shr     A,#5
+
+		shl	expA, #23
+
+		mov	r0, A
+		add	r0, expA
+
+		shl	Aflag, #31
+		or	r0, Aflag
+		ret
+
+		''
+		'' exponent is <=0, so we have to create an IEEE denormalized
+		'' number
+fpack_denorm
+		abs	expA, expA
+		add	expA, #1
+_fdlp
+		shr	A, #1 wcz
+	if_c	or	Aflag, #FLAG_STICKY
+	if_nz	djnz	expA, #_fdlp
+
+fpack_denorm_ret
+		ret
+fpack_excep
+		mov	A, #0
+		mov	expA, #FMAX_EXP
+
+		test	Aflag, #FLAG_NAN wz
+	if_nz	mov	r0, ##NAN_32
+	if_nz	ret
+		test	Aflag, #FLAG_ZERO wz
+	if_nz	mov	r0, #0
+	if_nz	ret
+		jmp	#fpack_exp
+
+		''
+		'' unpack 2 floats in r0,r1 into A,B
+		''
+FUnpack2
+		mov	A, r1
+		call	#FUnpack
+		mov	Blo,Alo
+		mov	B, A
+		mov	Bflag,Aflag
+		mov	expB,expA
+		mov	A, r0
+		jmp	#FUnpack
+
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+'' Actual commands start here
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+		'' addition and subtraction
+DSub
+		xor	r3, ##$80000000
+		'' fall through
+
+DAdd
+		call	#DUnpack2
+		call	#_Add
+		jmp	#DPack
+		
+
+DMul
+		call	#DUnpack2
+		call	#_Mul
+		jmp	#DPack
+
+DDiv
+		call	#DUnpack2
+		call	#_Div
+		jmp	#DPack
+
+	'' single precision operations
+FSub
+		xor	r1, ##$80000000
+		'' fall through
+
+FAdd
+		call	#FUnpack2
+		call	#_Add
+		jmp	#FPack
+
+FMul
+		call	#FUnpack2
+		call	#_Mul
+		jmp	#FPack
+
+FDiv
+		call	#FUnpack2
+		mov	Alo, A
+		mov	Blo, B
+		mov	A, #0
+		mov	B, #0
+		call	#_DivSmall
+		mov	A, Alo
+		mov	B, Blo
+		mov	Alo, #0
+		mov	Blo, #0
+		jmp	#FPack
+
+	'' conversion operations
+	'' single to double
+FToD
+		mov	A, r0
+		call	#FUnpack
+		jmp	#DPack
+
+	'' double to single
+DToF
+		mov	A, r1
+		mov	Alo, r0
+		call	#DUnpack
+		jmp	#FPack
+
+	'' 32 bit signed integer to float
+IToF
+		abs	A, r0 wc, wz
+		mov	Aflag, #0
+	if_c	or	Aflag, #FLAG_SIGN
+		mov	r2, #0		'' single precision
+
+doint
+	if_z	mov	r1, #0
+	if_z	ret			'' 0 -> 0
+		mov	Alo, #0
+		mov	expA,#28	'' set the exponent
+		cmp	r2, #0 wz
+	if_nz	jmp	#dblprec
+		jmp	#FPack
+
+dblprec
+		jmp	#DPack
+
+	'' 32 bit unsigned integer to float
+UIToF
+		mov	A, r0 wz,wc
+		mov	Aflag, #0
+		mov	r2, #0		'' single precision
+		jmp	#doint
+
+	'' 32 bit signed integer to double
+IToD
+		abs	A, r0 wc, wz
+		mov	Aflag, #0
+	if_c	or	Aflag, #FLAG_SIGN
+		mov	r2, #1		'' double precision
+		jmp	#doint
+	'' 32 bit unsigned integer to double
+UIToD
+		mov	A, r0 wz
+		mov	Aflag, #0
+		mov	r2, #1		'' double precision
+		jmp	#doint
+
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+'' Utility functions go here
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+		''
+		'' the actual add routine
+		''
+_Add
+		'' swap so magnitude of A is bigger than that of B
+		'' NOTE: we are assuming here that infinity is given
+		'' a big expA, and 0 a very tiny one
+		cmps	expA, expB wcz
+	if_a	jmp  	#_addnoswap
+	if_b	jmp	#_addswap
+		cmp	Alo,Blo wz,wc
+		cmpx	A,B	wz,wc
+	if_ae	jmp	#_addnoswap
+_addswap
+		mov	tmp0,Aflag
+		mov	tmp1,expA
+		mov	Aflag,Bflag
+		mov	expA, expB
+		mov	Bflag,tmp0
+		mov	expB, tmp1
+		mov	tmp0, A
+		mov	tmp1, Alo
+		mov	A, B
+		mov	Alo, Blo
+		mov	B, tmp0
+		mov	Blo, tmp1
+
+_addnoswap
+		'' shift B down as necessary
+		mov	 tmp0,expA
+		sub	 tmp0,expB wz
+	if_z	jmp	 #_doadd
+		cmp	 tmp0,#32 wz,wc
+	if_b	jmp	 #_addshift
+		cmp	 Blo,#0   wz,wc
+	if_nz	or	 Aflag, #FLAG_STICKY
+		mov	 Blo, B
+		mov	 B, #0
+		sub	 tmp0,#32 wz
+	if_z	jmp	 #_doadd
+_addshift
+		fle	 tmp0,#31
+		mov	 tmp1,#32
+		sub	 tmp1,tmp0
+		mov	 Btmp,Blo
+		shl	 Btmp,tmp1 wz
+	if_nz	or	 Aflag, #FLAG_STICKY
+		shr	 Blo, tmp0
+		mov	 Btmp, B
+		shl	 Btmp, tmp1
+		shr	 B, tmp0
+		or	 Blo, Btmp
+_doadd
+		'' now perform the addition
+		mov	tmp0, Aflag
+		xor     tmp0, Bflag
+		test    tmp0, #FLAG_SIGN wz
+	if_nz	jmp     #_dosub
+		add     Alo, Blo wc
+		addx    A, B
+		ret
+_dosub
+		'' check for INF - INF
+		'' note that if B is INF, then A is NAN or INF, so
+		'' in either case NAN is appropriate to return
+		test	Bflag, #FLAG_INF wz
+	if_nz	or	Aflag, #FLAG_NAN
+		sub	Alo, Blo wc, wz
+		subx	A, B wc, wz
+	if_z	andn	Aflag, #FLAG_SIGN
+	if_z	or	Aflag, #FLAG_ZERO
+		ret
+
+		'' the actual multiply routine
+_Mul
+		mov	tmp0,Aflag
+		or	tmp0,Bflag
+		test	tmp0,#(FLAG_INF|FLAG_NAN) wz
+	if_nz	jmp	#_mul_excep
+		'' regular multiply
+		add	expA,expB
+		
+		'' calculate (A,Alo) * (B, Blo)
+		'' both are 4.60 numbers
+
+		'' we need to do:
+		'' (A * B) + (A * Blo) >> 32 + (B * Alo) >> 32 + (Alo * Blo) >> 64
+		cmp	Blo, #0 wz
+	if_z	mov	tmp0, #0
+	if_nz	qmul	A, Blo
+	if_nz	getqy	tmp0
+		cmp	Alo, #0 wz
+	if_z	mov	tmp1, #0
+	if_nz	qmul	B, Alo
+	if_nz	getqy	tmp1
+	
+		qmul	A, B
+		getqy	A
+		getqy	Alo
+
+		add	Alo, tmp0 wc
+		addx	A, #0
+		add	Alo, tmp1 wc
+		addx	A, #0
+
+		'' now adjust: need to multiply final result by 16
+		shl    A, #4
+		mov    tmp0, Alo
+		shl    Alo, #4
+		shr    tmp0, #28
+		or     A, tmp0
+		
+_mul_sign
+		mov	tmp0,Aflag
+		xor	tmp0,Bflag
+		test	tmp0,#FLAG_SIGN wz
+		muxnz	Aflag,#FLAG_SIGN
+_Mul_ret
+		ret
+
+		'' special cases for inf, NaN
+_mul_excep
+		'' if we get here, we know that either the
+		'' NAN or INF bit is set
+		'' if 0 is set as well, we have an illegal condition
+		'' NAN*anything = NAN
+		'' 0*inf == NAN
+		test	tmp0, #(FLAG_NAN|FLAG_ZERO) wz
+	if_nz	or	Aflag,#FLAG_NAN
+	if_z	or	Aflag,#FLAG_INF
+		jmp	#_mul_sign
+
+		''
+		'' the actual division routine
+		''
+		''
+		'' (A, Alo) / (B, Blo)
+		''
+		'' DivSmall just does bottom 28 bits, Div does all
+		'' 61
+_DivSmall
+		'' we're given just 1.28 bits
+		'' make sure we produce a few extra bits for rounding
+		mov	count, #31
+		sub	expA, #2	'' compensate for rounding bits
+		jmp	#_doDiv
+_Div
+		mov	count,#61
+_doDiv
+		'' set the sign of the result
+		mov	tmp0, Aflag
+		xor	tmp0, Bflag
+		test	tmp0, #FLAG_SIGN wz
+		muxnz	Aflag,#FLAG_SIGN
+
+		mov	tmp0, Aflag
+		or	tmp0, Bflag
+		'' check for divide by infinity or NAN
+		test	tmp0, #(FLAG_INF|FLAG_NAN) wz
+	if_nz	jmp	#_div_excep
+		'' check for divide by 0
+		test	Bflag, #FLAG_ZERO wz
+	if_nz	jmp	#_div_by_zero
+
+		'' regular divide loop here
+		sub	expA, expB
+		mov	tmp0, Alo
+		mov	tmp1, A
+		'' initialize quotient
+		mov	A, #0
+		mov	Alo, #0
+_divloop
+		cmp	tmp0, Blo wcz
+		cmpx	tmp1, B wcz
+	if_b	jmp	#_div_skip_sub
+		sub	tmp0, Blo wcz
+		subx	tmp1, B
+		shl	Alo, #1 wc
+		or	Alo, #1
+		jmp	#_div_next
+_div_skip_sub
+		shl	Alo, #1 wc
+_div_next
+		rcl	A, #1
+		shl	tmp0, #1 wc
+		rcl	tmp1, #1
+		djnz	count, #_divloop
+
+		'' set sticky bit if necessary
+		or     	 tmp0,tmp1 wz
+	if_nz	or	 Aflag, #FLAG_STICKY
+
+_Div_ret
+_DivSmall_ret
+		ret
+
+_div_by_zero
+		test	Aflag, #(FLAG_NAN|FLAG_INF|FLAG_ZERO) wz
+	if_nz	or	Aflag, #FLAG_NAN
+	if_z	or	Aflag, #FLAG_INF
+		jmp	#_Div_ret
+
+		''
+		'' if some number is infinity or NaN, come here
+		''
+_div_excep
+		test	tmp0, #FLAG_NAN wz
+_div_nan
+	if_nz	or	Aflag, #FLAG_NAN
+	if_nz	jmp	#_Div_ret
+
+		test	Aflag, #FLAG_INF wz
+	if_z	jmp	#_a_finite
+		'' infinity/x
+		test	Bflag, #(FLAG_INF) wz
+	if_nz	jmp	#_div_nan
+		jmp	#_Div_ret
+
+		'' x/infinity
+_a_finite
+		or	Aflag, #FLAG_ZERO
+		mov	A, #0
+		mov	Alo, #0
+		jmp	#_Div_ret
+
+
+{{
+
+
++------------------------------------------------------------------------------------------------------------------------------+
+|                                                   TERMS OF USE: MIT License                                                  |                                                            
++------------------------------------------------------------------------------------------------------------------------------+
+|Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation    | 
+|files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy,    |
+|modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software|
+|is furnished to do so, subject to the following conditions:                                                                   |
+|                                                                                                                              |
+|The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.|
+|                                                                                                                              |
+|THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE          |
+|WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR         |
+|COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,   |
+|ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                         |
++------------------------------------------------------------------------------------------------------------------------------+
+}}

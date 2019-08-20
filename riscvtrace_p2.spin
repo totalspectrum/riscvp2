@@ -2388,6 +2388,8 @@ c_bnez
 #define ECALL_OPEN 1024
 #define ECALL_TIME 1062
 
+#define ECALL_FPU	4000
+
 ecall_func
 		cmp	x17, #ECALL_WRITE wz
 	if_z	jmp	#syscall_write
@@ -2397,6 +2399,8 @@ ecall_func
 	if_z	jmp	#syscall_gettimeofday
 		cmp	x17, #ECALL_EXIT wz
 	if_z	jmp	#syscall_exit
+		cmp	x17, ##ECALL_FPU wcz
+	if_ae	jmp	#syscall_fpu	
 		neg	x10, #ENOSYS
 		ret
 syscall_write
@@ -2513,6 +2517,25 @@ syscall_gettimeofday
 		add	   x10, #4
 		wrlong	   temp, x10
 	_ret_	mov	   x10, #0
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+'' floating point routines
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+#include "Double.spin2"
+
+syscall_fpu
+		sub	x17, ##ECALL_FPU
+		fle	x17, #4
+		jmprel	x17
+		jmp	#@FAdd
+		jmp	#@FSub
+		jmp	#@FMul
+		jmp	#@FDiv
+		jmp	#@__err
+
+__err
+		neg	x10, #1
+		ret
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 '' cache memory

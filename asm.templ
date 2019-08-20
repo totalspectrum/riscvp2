@@ -145,6 +145,32 @@ __riscv_restore_0:
 	addi	sp,sp,16
 	ret
 
+	.globl __adddf3
+	.globl __addsf3
+	.globl __subdf3
+	.globl __subsf3
+	.globl __muldf3
+	.globl __mulsf3
+	.globl __divdf3
+	.globl __divsf3
+
+__addsf3:
+	li	x17, 4000
+	ecall
+	ret
+__subsf3:
+	li	x17, 4001
+	ecall
+	ret
+__mulsf3:
+	li	x17, 4002
+	ecall
+	ret
+__divsf3:
+	li	x17, 4003
+	ecall
+	ret
+	
 	.data
 _heap_ptr:	
 	.long	0
