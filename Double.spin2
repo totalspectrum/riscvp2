@@ -155,11 +155,10 @@ _Fnan
 
 		'' normalize a denormalized number
 _Fdenorm
-		sub	expA, #FBIAS_EXP
+		sub	expA, #(FBIAS_EXP-1)
 		'' adjust for converting from 1.23 to 1.28
-		add	expA, #(1+5)
-		'' check for all 0
-		cmp 	 A, #0 wz
+		'' and check for all 0
+		shl	  A, #5 wz
 	if_z	sub	 expA, #511
 	if_z	or	 Aflag, #FLAG_ZERO
 	if_z	ret
@@ -310,17 +309,17 @@ FPack
 
 		'' fix up exponent
 		add	expA, #FBIAS_EXP
-		cmps	expA, #0 wcz
-	if_be	call	#fpack_denorm
 		fles	expA, #FMAX_EXP wc
 	if_c	jmp	#fpack_excep
+		cmps	expA, #0 wcz
+	if_be	call	#fpack_denorm
 
 		'' round here
 		'' we clear the implied one first, and allow the
 		'' rounding to propagate up to it
 		andn	A, ##one_4_28
 		cmp	Alo,#0 wz
-	if_nz	or	A, #1
+	if_nz	or	Aflag, #FLAG_STICKY
 		test	Aflag, #FLAG_STICKY wz
 		'' we have 4.28, we want to round to 4.23
 		'' half of the lsb is therefore 0x10
@@ -333,8 +332,7 @@ FPack
 
 fpack_exp
 		'' now shift down to 9.23
-		shr     A,#5
-
+		shr     A,#5 wz
 		shl	expA, #23
 
 		mov	r0, A
@@ -349,10 +347,11 @@ fpack_exp
 		'' number
 fpack_denorm
 		abs	expA, expA
-		add	expA, #1
+		add	expA, #1	' shift one extra space
 _fdlp
 		shr	A, #1 wcz
 	if_c	or	Aflag, #FLAG_STICKY
+	if_z	mov	expA, #0
 	if_nz	djnz	expA, #_fdlp
 
 fpack_denorm_ret
@@ -593,7 +592,7 @@ _Mul
 	
 		qmul	A, B
 		getqy	A
-		getqy	Alo
+		getqx	Alo
 
 		add	Alo, tmp0 wc
 		addx	A, #0
