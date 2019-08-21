@@ -627,6 +627,10 @@ _mul_excep
 		'' DivSmall is for when Alo and Blo are both 0
 		''
 _DivSmall
+		'' start div, assuming we will need it
+		shr	A, #4 	       ' bottom bits of A are 0
+		qfrac	A, B
+
 		'' set sign of result
 		mov    tmp0, Aflag
 		xor    tmp0, Bflag
@@ -643,11 +647,6 @@ _DivSmall
 	if_nz	jmp	#_div_by_zero
 
 		sub	expA, expB
-		mov	Alo, A
-		shr	A, #4
-		shl	Alo, #28
-		setq	A
-		qdiv	Alo, B
 		getqx	A       ' quotient
 		getqy	tmp0	' remainder
 		cmp	tmp0, #0 wz
