@@ -2525,12 +2525,16 @@ syscall_gettimeofday
 
 syscall_fpu
 		sub	x17, ##ECALL_FPU
-		fle	x17, #4
+		fle	x17, #8
 		jmprel	x17
 		jmp	#@FAdd
 		jmp	#@FSub
 		jmp	#@FMul
 		jmp	#@FDiv
+		jmp	#@DAdd
+		jmp	#@DSub
+		jmp	#@DMul
+		jmp	#@DDiv
 		jmp	#@__err
 
 __err

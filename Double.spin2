@@ -1,5 +1,5 @@
 {{
-        Double -- double precision floating point routines for
+        Double -- double (and single) precision floating point routines for
 	the Propeller
 
         Copyright (c) 2012 Total Spectrum Software Inc.
@@ -56,7 +56,9 @@ expB		res	1
 
 tmp0		res	1
 tmp1		res	1
+tmp2		res	1
 
+tmp3
 count
 Btmp
 		res	1
@@ -213,10 +215,10 @@ DPack
 
 		'' fix up exponent
 		add	expA, ##DBIAS_EXP
-		cmps	expA, #0 wz, wc
-	if_be	call	#dpack_denorm
 		fles	expA, ##DMAX_EXP wc
 	if_c	jmp	#dpack_excep
+		cmps	expA, #0 wcz
+	if_be	call	#dpack_denorm
 
 		'' round here
 		'' we clear the implied one first, and allow the
@@ -518,7 +520,10 @@ _addnoswap
 		mov	 tmp0,expA
 		sub	 tmp0,expB wz
 	if_z	jmp	 #_doadd
-		cmp	 tmp0,#32 wz,wc
+		fle	 tmp0,#60 wc
+	if_c	or	 Aflag, #FLAG_STICKY
+	if_c	ret
+		cmp	 tmp0,#32 wcz
 	if_b	jmp	 #_addshift
 		cmp	 Blo,#0   wz,wc
 	if_nz	or	 Aflag, #FLAG_STICKY
@@ -527,7 +532,6 @@ _addnoswap
 		sub	 tmp0,#32 wz
 	if_z	jmp	 #_doadd
 _addshift
-		fle	 tmp0,#31
 		mov	 tmp1,#32
 		sub	 tmp1,tmp0
 		mov	 Btmp,Blo
@@ -571,33 +575,51 @@ _Mul
 		'' calculate (A,Alo) * (B, Blo)
 		'' both are 4.60 numbers
 
-		'' we need to do:
+		'' calculate:
+		'' note that A and B are 4.28 fixed point, so we need to
+		'' multiply final result by 16;
+		'' do that by multiplying both A and B by 4 here
+		rcl	Alo, #1 wc
+		rcl	A, #1
+		rcl	Alo, #1 wc
+		rcl	A, #1
+		rcl	Blo, #1 wc
+		rcl	B, #1
+		rcl	Blo, #1 wcz
+		rcl	B, #1
+
+		'' calculate
 		'' (A * B) + (A * Blo) >> 32 + (B * Alo) >> 32 + (Alo * Blo) >> 64
+		mov	pa, Alo
+		or	pa, Blo wz
+	if_nz	or	Aflag, #FLAG_STICKY
+
+		'' (tmp0,tmp1) = A * Blo
+		mov	tmp0, #0
+		mov	tmp1, #0
 		cmp	Blo, #0 wz
-	if_z	mov	tmp0, #0
 	if_nz	qmul	A, Blo
+	if_nz	getqx	tmp1
 	if_nz	getqy	tmp0
+
+		'' (Alo, tmp2) = B * Alo
+		mov	tmp2, #0
 		cmp	Alo, #0 wz
-	if_z	mov	tmp1, #0
 	if_nz	qmul	B, Alo
-	if_nz	getqy	tmp1
-	
+	if_nz	getqx	tmp2
+	if_nz	getqy	Alo
+
 		qmul	A, B
-		getqy	A
-		getqx	Alo
-
-		add	Alo, tmp0 wc
-		addx	A, #0
-		add	Alo, tmp1 wc
-		addx	A, #0
-
-		'' now adjust: need to multiply final result by 16
-		shl    A, #4
-		mov    tmp0, Alo
-		shl    Alo, #4
-		shr    tmp0, #28
-		or     A, tmp0
+		add	tmp2, tmp1 wcz
+		addx	Alo, tmp0 wc
+	if_nz	or	Aflag, FLAG_STICKY
 		
+		getqy	A
+		getqx	tmp0
+		addx	A, #0
+		addx	Alo, tmp0 wc
+		addx	A, #0
+
 _mul_sign
 		mov	tmp0,Aflag
 		xor	tmp0,Bflag
