@@ -2388,6 +2388,7 @@ c_bnez
 #define ECALL_OPEN 1024
 #define ECALL_TIME 1062
 
+#define ECALL_DEBUG     3999
 #define ECALL_FPU	4000
 
 ecall_func
@@ -2399,6 +2400,8 @@ ecall_func
 	if_z	jmp	#syscall_gettimeofday
 		cmp	x17, #ECALL_EXIT wz
 	if_z	jmp	#syscall_exit
+		cmp	x17, ##ECALL_DEBUG wcz
+	if_z	jmp	#syscall_getdebug	
 		cmp	x17, ##ECALL_FPU wcz
 	if_ae	jmp	#syscall_fpu	
 		neg	x10, #ENOSYS
@@ -2540,6 +2543,11 @@ syscall_fpu
 __err
 		neg	x10, #1
 		ret
+syscall_getdebug
+		mov	x10, ##@debugptr
+		ret
+
+debugptr	long	0[16]
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 '' cache memory

@@ -58,7 +58,7 @@ tmp0		res	1
 tmp1		res	1
 tmp2		res	1
 
-tmp3
+Alo2
 count
 Btmp
 		res	1
@@ -585,62 +585,80 @@ _Mul
 		
 		'' calculate (A,Alo) * (B, Blo)
 		'' both are 4.60 numbers
-
-		'' calculate:
-		'' note that A and B are 4.28 fixed point, so we need to
-		'' multiply final result by 16;
-		'' do that by multiplying both A and B by 4 here
-		rcl	Alo, #1 wc
-		rcl	A, #1
-		rcl	Alo, #1 wc
-		rcl	A, #1
-		rcl	Blo, #1 wc
-		rcl	B, #1
-		rcl	Blo, #1 wcz
-		rcl	B, #1
-
+#define DEBUG		
+#ifdef DEBUG
+		mov	tmp2, ##@debugptr
+		wrlong	A, tmp2
+		add	tmp2, #4
+		wrlong	Alo, tmp2
+		add	tmp2, #4
+		wrlong	B, tmp2
+		add	tmp2, #4
+		wrlong	Blo, tmp2
+#endif
 		'' calculate
 		'' (A * B) + (A * Blo) >> 32 + (B * Alo) >> 32 + (Alo * Blo) >> 64
 		'' we build up the result in:
-		'' A, Alo, tmp3, tmp2
-		mov	pa, Alo
-		or	pa, Blo wz
-		mov	tmp3, #0
-	if_nz	qmul	Alo, Blo
-	if_nz	getqx	tmp2
-	if_nz	getqy	tmp3
-		cmp	tmp2, #0 wz
+		'' A, Alo, Alo2, tmp1
+		qmul	Alo, Blo
+		getqx	tmp1
+		getqy	tmp2	'' need to add tmp2 to Alo
+		cmp	tmp1, #0 wz
 	if_nz	or	Aflag, #FLAG_STICKY
 	
-		'' (tmp0,tmp1) = A * Blo
-		mov	tmp0, #0
-		mov	tmp1, #0
-		cmp	Blo, #0 wz
-	if_nz	qmul	A, Blo
-	if_nz	getqx	tmp1
-	if_nz	getqy	tmp0
+		'' (Alo, Alo2) = B * Alo
+		qmul	B, Alo
+		getqx	Alo2
+		getqy	Alo
 
-		'' (Alo, tmp2) = B * Alo
-		mov	tmp2, #0
-		cmp	Alo, #0 wz
-	if_nz	qmul	B, Alo
-	if_nz	getqx	tmp2
-	if_nz	getqy	Alo
+		'' (tmp0,tmp1) = A * Blo
+		qmul	A, Blo
+		getqx	tmp1
+		getqy	tmp0
+
 		qmul	A, B
+		'' OK, main multiply is in flight so we're done with A, Alo, etc
+		'' currently we have:
+		''  0, Alo, Alo2
+		''     tmp0, tmp1
+		''     0,    tmp2, 0
+		''
 		mov	A, #0
-		add	tmp1, tmp2 wc
+		
+		add	Alo2, tmp1 wc
 		addx	Alo, tmp0 wc
 		addx	A, #0
-		add	tmp3, tmp1 wc
-		addx	Alo, #0 wc
-		addx	A, #0 wc
-		cmp	tmp3, #0 wz
-	if_nz	or	Aflag, #FLAG_STICKY
 
-		getqy	tmp0
+		add	Alo2, tmp2 wc
+		addx	Alo, #0 wc
+		addx	A, #0
+
 		getqx	tmp1
+		getqy	tmp0
 		add	Alo, tmp1 wc
 		addx	A, tmp0
+
+		'' now shift up 4 to convert
+		'' 8.120 to 4.124
+		mov	tmp0, Alo
+		mov	tmp1, Alo2
+		shr	tmp0, #28
+		shr	tmp1, #28
+		shl	A, #4
+		or	A, tmp0
+		shl	Alo, #4
+		or	Alo, tmp1
+		shl	Alo2, #4 wz
+	if_nz	or	Aflag, #FLAG_STICKY
+#ifdef DEBUG
+		mov	tmp2, ##@debugptr+16
+		wrlong	A, tmp2
+		add	tmp2, #4
+		wrlong	Alo, tmp2
+		add	tmp2, #4
+		wrlong	Alo2, tmp2
+		add	tmp2, #4
+#endif
 
 _mul_sign
 		mov	tmp0,Aflag

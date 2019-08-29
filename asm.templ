@@ -179,12 +179,18 @@ __subdf3:
 	li	x17, 4005
 	ecall
 	ret
-__muldf3x:
+__muldf3:
 	li	x17, 4006
 	ecall
 	ret
-__divdf3x:
+__divdf3:
 	li	x17, 4007
+	ecall
+	ret
+
+	.globl	__getdebug
+__getdebug:
+	li	x17, 3999
 	ecall
 	ret
 	
