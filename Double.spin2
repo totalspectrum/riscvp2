@@ -2,10 +2,12 @@
         Double -- double (and single) precision floating point routines for
 	the Propeller
 
-        Copyright (c) 2012 Total Spectrum Software Inc.
+        Copyright (c) 2012-2019 Total Spectrum Software Inc.
 
         Released under the MIT License (see the end of this file for details)      
 }}
+
+'#define DEBUG
 
 CON
   FLAG_SIGN      = $1
@@ -215,7 +217,9 @@ DPack
 
 		'' fix up exponent
 		add	expA, ##DBIAS_EXP
-		fles	expA, ##DMAX_EXP wc
+		fles	expA, ##DMAX_EXP-1 wc
+	if_c	mov	A, #0
+	if_c	or	Aflag, #(FLAG_INF)
 	if_c	jmp	#dpack_excep
 		cmps	expA, #0 wcz
 	if_be	call	#dpack_denorm
@@ -311,7 +315,8 @@ FPack
 
 		'' fix up exponent
 		add	expA, #FBIAS_EXP
-		fles	expA, #FMAX_EXP wc
+		fles	expA, #FMAX_EXP-1 wc
+	if_c	or	Aflag, #FLAG_INF
 	if_c	jmp	#fpack_excep
 		cmps	expA, #0 wcz
 	if_be	call	#fpack_denorm
@@ -585,7 +590,6 @@ _Mul
 		
 		'' calculate (A,Alo) * (B, Blo)
 		'' both are 4.60 numbers
-#define DEBUG		
 #ifdef DEBUG
 		mov	tmp2, ##@debugptr
 		wrlong	A, tmp2
@@ -595,26 +599,33 @@ _Mul
 		wrlong	B, tmp2
 		add	tmp2, #4
 		wrlong	Blo, tmp2
-#endif
-		'' calculate
+#endif		
 		'' (A * B) + (A * Blo) >> 32 + (B * Alo) >> 32 + (Alo * Blo) >> 64
 		'' we build up the result in:
 		'' A, Alo, Alo2, tmp1
-		qmul	Alo, Blo
-		getqx	tmp1
-		getqy	tmp2	'' need to add tmp2 to Alo
+		mov	tmp1, #0
+		mov	tmp2, #0
+		cmp	Blo, #0 wz
+	if_nz	qmul	Alo, Blo
+	if_nz	getqx	tmp1
+	if_nz	getqy	tmp2	'' need to add tmp2 to Alo
 		cmp	tmp1, #0 wz
 	if_nz	or	Aflag, #FLAG_STICKY
 	
 		'' (Alo, Alo2) = B * Alo
-		qmul	B, Alo
-		getqx	Alo2
-		getqy	Alo
+		mov	Alo2, #0
+		cmp	Alo, #0 wz
+	if_nz	qmul	B, Alo
+	if_nz	getqx	Alo2
+	if_nz	getqy	Alo
 
 		'' (tmp0,tmp1) = A * Blo
-		qmul	A, Blo
-		getqx	tmp1
-		getqy	tmp0
+		mov	tmp1, #0
+		mov	tmp0, #0
+		cmp	Blo, #0 wz
+	if_nz	qmul	A, Blo
+	if_nz	getqx	tmp1
+	if_nz	getqy	tmp0
 
 		qmul	A, B
 		'' OK, main multiply is in flight so we're done with A, Alo, etc
@@ -651,15 +662,13 @@ _Mul
 		shl	Alo2, #4 wz
 	if_nz	or	Aflag, #FLAG_STICKY
 #ifdef DEBUG
-		mov	tmp2, ##@debugptr+16
-		wrlong	A, tmp2
-		add	tmp2, #4
-		wrlong	Alo, tmp2
-		add	tmp2, #4
-		wrlong	Alo2, tmp2
-		add	tmp2, #4
-#endif
-
+		mov	tmp1, ##@debugptr+12
+		wrlong	A, tmp1
+		add	tmp1, #4
+		wrlong	Alo, tmp1
+		add	tmp1, #4
+		wrlong	Alo2, tmp1
+#endif		
 _mul_sign
 		mov	tmp0,Aflag
 		xor	tmp0,Bflag
@@ -714,7 +723,10 @@ _DivSmall
 		cmp	tmp0, #0 wz
 	if_nz	or	Aflag, #FLAG_STICKY
 		ret
-		
+
+		''
+		'' perform 4.60 / 4.60 division
+		''
 _Div
 		mov	count,#61
 _doDiv
