@@ -685,12 +685,10 @@ jit_orig_ptrb	long	0
 		fit	$1c0
 #endif
 
-' indirect branch predictor cache
+' reserved for float use
   	 	org	$1d0
-brpredict_tag
-		res	8
-brpredict_cache
-		res	8
+float_reserved
+		res	16
 		
 		org	$1e0
 		' scratch registers needed only for the
@@ -712,6 +710,7 @@ dest		res	1
 func3		res	1
 func2		res	1
 ioptr		res	1
+		fit	$1f0
 
 ''
 '' some lesser used routines that can go in HUB memory
@@ -2528,7 +2527,7 @@ syscall_gettimeofday
 
 syscall_fpu
 		sub	x17, ##ECALL_FPU
-		fle	x17, #8
+		fle	x17, #10
 		jmprel	x17
 		jmp	#@FAdd
 		jmp	#@FSub
@@ -2538,6 +2537,8 @@ syscall_fpu
 		jmp	#@DSub
 		jmp	#@DMul
 		jmp	#@DDiv
+		jmp	#@FSqrt
+		jmp	#@DSqrt
 		jmp	#@__err
 
 __err

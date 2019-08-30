@@ -44,26 +44,31 @@ DAT
 #define	r2	x12
 #define	r3	x13
 
-		org     $1e0
+		org     $1d0
 
 A		res	1
 Alo		res	1
 Aflag		res	1
-expA		res	1
+Aexp		res	1
 
 B		res	1
 Blo		res	1
 Bflag		res	1
-expB		res	1
+Bexp		res	1
+
+C		res	1
+Clo		res	1
+Cflag		res	1
+Cexp		res	1
 
 tmp0		res	1
 tmp1		res	1
 tmp2		res	1
 
-Alo2
-count
-Btmp
-		res	1
+Alo2		res	1
+count		res	1
+Btmp		res	1
+
 
 		fit	$1f0
 
@@ -76,14 +81,14 @@ Btmp
 		''
 DUnpack
 		mov	Aflag, #0
-		mov	expA, A
-		shl	expA, #1 wc
+		mov	Aexp, A
+		shl	Aexp, #1 wc
 	if_c	or	Aflag, #FLAG_SIGN
 		and	A, ##DMANTMASK	' mask off exponent and sign bit
-		shr	expA, #21 wz	' extract exponent
+		shr	Aexp, #21 wz	' extract exponent
 	if_z	jmp	#_Ddenorm	' zero or denormal
-		cmp	expA, ##DMAX_EXP wz
-		sub	expA, ##DBIAS_EXP  ' remove bias
+		cmp	Aexp, ##DMAX_EXP wz
+		sub	Aexp, ##DBIAS_EXP  ' remove bias
 	if_z	jmp	#_Dnan	      	' NaN or Infinity
 
 		'' now shift up to 4.28 to give head room
@@ -99,13 +104,13 @@ DUnpack_ret
 
 		'' normalize a denormalized number
 _Ddenorm
-		sub	expA, ##DBIAS_EXP
+		sub	Aexp, ##DBIAS_EXP
 		'' adjust for converting from 1.52 to 1.60
-		add	expA, #(1+8)
+		add	Aexp, #(1+8)
 		'' check for all 0
 		mov	 pa, A
 		or 	 pa, Alo wz
-	if_z	sub	 expA, #64
+	if_z	sub	 Aexp, #64
 	if_z	or	 Aflag, #FLAG_ZERO
 	if_z	ret
 		'' not all 0, renormalize
@@ -113,13 +118,13 @@ _Ddenorm
 
 		'' handle NaN or Infinity
 _Dnan
-		mov	expA, ##DMAX_EXP
+		mov	Aexp, ##DMAX_EXP
 		mov	pa, A
 		or	pa, Alo wz	'' check for infinity
 	if_z	or	Aflag, #FLAG_INF
 	if_z	mov	A, ##one_4_28
 	if_nz	or	Aflag, #FLAG_NAN
-	if_nz	add	expA, expA
+	if_nz	add	Aexp, Aexp
 		ret
 
 		''
@@ -130,14 +135,14 @@ _Dnan
 FUnpack
 		mov	Alo, #0
 		mov	Aflag, #0
-		mov	expA, A
-		shl	expA, #1 wc
+		mov	Aexp, A
+		shl	Aexp, #1 wc
 	if_c	or	Aflag, #FLAG_SIGN
 		and	A, ##FMANTMASK	' mask off exponent and sign bit
-		shr	expA, #24 wz	' extract exponent
+		shr	Aexp, #24 wz	' extract exponent
 	if_z	jmp	#_Fdenorm	' zero or denormal
-		cmp	expA, #FMAX_EXP wz
-		sub	expA, #FBIAS_EXP  ' remove bias
+		cmp	Aexp, #FMAX_EXP wz
+		sub	Aexp, #FBIAS_EXP  ' remove bias
 	if_z	jmp	#_Fnan	      	' NaN or Infinity
 
 		'' now shift up to 4.28 to give head room
@@ -148,22 +153,22 @@ FUnpack
 
 		'' handle NaN or Infinity
 _Fnan
-		mov	expA, #FMAX_EXP
+		mov	Aexp, #FMAX_EXP
 		mov	pa, A
 		or	pa, Alo wz
 	if_z	or	Aflag, #FLAG_INF
 	if_z	mov	A, ##one_4_28
 	if_nz	or	Aflag, #FLAG_NAN
-	if_nz	add	expA, expA
+	if_nz	add	Aexp, Aexp
 		ret
 
 		'' normalize a denormalized number
 _Fdenorm
-		sub	expA, #(FBIAS_EXP-1)
+		sub	Aexp, #(FBIAS_EXP-1)
 		'' adjust for converting from 1.23 to 1.28
 		'' and check for all 0
 		shl	  A, #5 wz
-	if_z	sub	 expA, #511
+	if_z	sub	 Aexp, #511
 	if_z	or	 Aflag, #FLAG_ZERO
 	if_z	ret
 		'' not all 0, renormalize
@@ -184,7 +189,7 @@ Normalize
 _down
 		test	A, ##$E000_0000 wz
 	if_z	jmp	#_up
-		add	expA, #1
+		add	Aexp, #1
 		shr	A, #1 wc
 		rcr	Alo, #1 wc
 	if_c	or	Aflag, #FLAG_STICKY	' remember we lost bits
@@ -197,7 +202,7 @@ _up
 
 		shl    Alo, #1 wc
 		rcl    A, #1
-		sub    expA, #1
+		sub    Aexp, #1
 		jmp    #_up
 Normalize_ret
 		ret
@@ -211,17 +216,25 @@ Normalize_ret
 		'' input is assumed to be normalized
 		''
 DPack
-		call	#Normalize
+#ifdef DEBUG
+		mov	uart_char, #"m"
+		call	#ser_tx
+#endif		
 		test	Aflag, #(FLAG_INF|FLAG_NAN|FLAG_ZERO) wz
 	if_nz	jmp	#dpack_excep
 
+#ifdef DEBUG
+		mov	uart_char, #"n"
+		call	#ser_tx
+#endif		
+		call	#Normalize
 		'' fix up exponent
-		add	expA, ##DBIAS_EXP
-		fles	expA, ##DMAX_EXP-1 wc
+		add	Aexp, ##DBIAS_EXP
+		fles	Aexp, ##DMAX_EXP-1 wc
 	if_c	mov	A, #0
 	if_c	or	Aflag, #(FLAG_INF)
 	if_c	jmp	#dpack_excep
-		cmps	expA, #0 wcz
+		cmps	Aexp, #0 wcz
 	if_be	call	#dpack_denorm
 
 		'' round here
@@ -240,6 +253,10 @@ DPack
 		addx  	A, #0
 
 dpack_exp
+#ifdef DEBUG
+		mov	uart_char, #"s"
+		call	#ser_tx
+#endif		
 		'' now shift down to 12.52
 		shr     Alo,#8
 		mov     tmp0,A
@@ -247,15 +264,19 @@ dpack_exp
 		shl     tmp0,#24
 		or      Alo,tmp0
 
-		shl	expA, #20
+		shl	Aexp, #20
 
 		mov	r0, Alo
 		mov	r1, A
-		add	r1, expA
+		add	r1, Aexp
 
 		shl	Aflag, #31
 		or	r1, Aflag
 DPack_ret
+#ifdef DEBUG
+		mov	uart_char, #"z"
+		call	#ser_tx
+#endif		
 		ret
 
 		''
@@ -263,25 +284,33 @@ DPack_ret
 		'' number
 dpack_denorm
 
-		abs	expA, expA
-		add	expA, #1
+		abs	Aexp, Aexp
+		add	Aexp, #1
 _ddlp
 		shr	A, #1 wc
 		rcr	Alo, #1 wc
 	if_c	or	Aflag, #FLAG_STICKY
-		djnz	expA, #_ddlp
+		djnz	Aexp, #_ddlp
 
 		ret
 dpack_excep
+#ifdef DEBUG
+		mov	uart_char, #"p"
+		call	#ser_tx
+#endif		
 		mov	A, #0
 		mov	Alo, #0
-		mov	expA, ##DMAX_EXP
+		mov	Aexp, ##DMAX_EXP
 		test	Aflag, #FLAG_NAN wz
 	if_nz	mov	A, ##one_4_28
 	if_nz	shr	A, #1
 	if_nz	jmp	#dpack_exp
+#ifdef DEBUG
+		mov	uart_char, #"t"
+		call	#ser_tx
+#endif		
 		test	Aflag, #FLAG_ZERO wz
-	if_nz	mov	expA, #0
+	if_nz	mov	Aexp, #0
 		jmp	#dpack_exp
 
 		''
@@ -294,7 +323,7 @@ DUnpack2
 		mov	B,A
 		mov	Blo,Alo
 		mov	Bflag,Aflag
-		mov	expB,expA
+		mov	Bexp,Aexp
 		mov	A,r1
 		mov	Alo,r0
 		jmp	#DUnpack
@@ -314,11 +343,11 @@ FPack
 	if_nz	jmp	#fpack_excep
 
 		'' fix up exponent
-		add	expA, #FBIAS_EXP
-		fles	expA, #FMAX_EXP-1 wc
+		add	Aexp, #FBIAS_EXP
+		fles	Aexp, #FMAX_EXP-1 wc
 	if_c	or	Aflag, #FLAG_INF
 	if_c	jmp	#fpack_excep
-		cmps	expA, #0 wcz
+		cmps	Aexp, #0 wcz
 	if_be	call	#fpack_denorm
 
 		'' round here
@@ -340,10 +369,10 @@ FPack
 fpack_exp
 		'' now shift down to 9.23
 		shr     A,#5 wz
-		shl	expA, #23
+		shl	Aexp, #23
 
 		mov	r0, A
-		add	r0, expA
+		add	r0, Aexp
 
 		shl	Aflag, #31
 		or	r0, Aflag
@@ -353,19 +382,19 @@ fpack_exp
 		'' exponent is <=0, so we have to create an IEEE denormalized
 		'' number
 fpack_denorm
-		abs	expA, expA
-		add	expA, #1	' shift one extra space
+		abs	Aexp, Aexp
+		add	Aexp, #1	' shift one extra space
 _fdlp
 		shr	A, #1 wcz
 	if_c	or	Aflag, #FLAG_STICKY
-	if_z	mov	expA, #0
-	if_nz	djnz	expA, #_fdlp
+	if_z	mov	Aexp, #0
+	if_nz	djnz	Aexp, #_fdlp
 
 fpack_denorm_ret
 		ret
 fpack_excep
 		mov	A, #0
-		mov	expA, #FMAX_EXP
+		mov	Aexp, #FMAX_EXP
 
 		test	Aflag, #FLAG_NAN wz
 	if_nz	mov	r0, ##NAN_32
@@ -384,7 +413,7 @@ FUnpack2
 		mov	Blo,Alo
 		mov	B, A
 		mov	Bflag,Aflag
-		mov	expB,expA
+		mov	Bexp,Aexp
 		mov	A, r0
 		jmp	#FUnpack
 
@@ -414,6 +443,28 @@ DDiv
 		call	#_Div
 		jmp	#DPack
 
+DSqrt
+#ifdef DEBUG
+		mov	uart_char, #"&"
+		call	#ser_tx
+		pop	uart_num
+		push	uart_num
+		call	#ser_hex
+#endif		
+		mov	A, r1
+		mov	Alo, r0
+		call	#DUnpack
+		call	#_Sqrt
+		call	#DPack
+#ifdef DEBUG
+		mov	uart_char, #"*"
+		call	#ser_tx
+		pop	uart_num
+		push	uart_num
+		call	#ser_hex
+#endif		
+		ret
+		
 	'' single precision operations
 FSub
 		xor	r1, ##$80000000
@@ -434,6 +485,12 @@ FDiv
 		call	#_DivSmall
 		jmp	#FPack
 
+FSqrt
+		mov	A, r0
+		call	#FUnpack
+		call	#_Sqrt
+		jmp	#FPack
+		
 	'' conversion operations
 	'' single to double
 FToD
@@ -459,7 +516,7 @@ doint
 	if_z	mov	r1, #0
 	if_z	ret			'' 0 -> 0
 		mov	Alo, #0
-		mov	expA,#28	'' set the exponent
+		mov	Aexp,#28	'' set the exponent
 		cmp	r2, #0 wz
 	if_nz	jmp	#dblprec
 		jmp	#FPack
@@ -499,8 +556,8 @@ UIToD
 _Add
 		'' swap so magnitude of A is bigger than that of B
 		'' NOTE: we are assuming here that infinity is given
-		'' a big expA, and 0 a very tiny one
-		cmps	expA, expB wcz
+		'' a big Aexp, and 0 a very tiny one
+		cmps	Aexp, Bexp wcz
 	if_a	jmp  	#_addnoswap
 	if_b	jmp	#_addswap
 		cmp	Alo,Blo wz,wc
@@ -508,11 +565,11 @@ _Add
 	if_ae	jmp	#_addnoswap
 _addswap
 		mov	tmp0,Aflag
-		mov	tmp1,expA
+		mov	tmp1,Aexp
 		mov	Aflag,Bflag
-		mov	expA, expB
+		mov	Aexp, Bexp
 		mov	Bflag,tmp0
-		mov	expB, tmp1
+		mov	Bexp, tmp1
 		mov	tmp0, A
 		mov	tmp1, Alo
 		mov	A, B
@@ -525,8 +582,8 @@ _addnoswap
 		'' if we are shifting more than 63 then
 		'' we just return the original value
 
-		mov	tmp0,expA
-		sub	tmp0,expB wz
+		mov	tmp0,Aexp
+		sub	tmp0,Bexp wz
 	if_z	jmp	#_doadd
 		fle	tmp0,#63 wc
 		'' FIXME: should raise inexact here?
@@ -586,7 +643,7 @@ _Mul
 		test	tmp0,#(FLAG_INF|FLAG_NAN) wz
 	if_nz	jmp	#_mul_excep
 		'' regular multiply
-		add	expA,expB
+		add	Aexp,Bexp
 		
 		'' calculate (A,Alo) * (B, Blo)
 		'' both are 4.60 numbers
@@ -717,7 +774,7 @@ _DivSmall
 		test	Bflag, #FLAG_ZERO wz
 	if_nz	jmp	#_div_by_zero
 
-		sub	expA, expB
+		sub	Aexp, Bexp
 		getqx	A       ' quotient
 		getqy	tmp0	' remainder
 		cmp	tmp0, #0 wz
@@ -746,7 +803,7 @@ _doDiv
 	if_nz	jmp	#_div_by_zero
 
 		'' regular divide loop here
-		sub	expA, expB
+		sub	Aexp, Bexp
 		mov	tmp0, Alo
 		mov	tmp1, A
 		'' initialize quotient
@@ -806,7 +863,144 @@ _a_finite
 		mov	Alo, #0
 		jmp	#_Div_ret
 
+		''
+		'' square root calculation
+		''
+_Sqrt
+#ifdef DEBUG
+		mov	uart_char, #"$"
+		call	#ser_tx
+		mov	uart_num, Aflag
+		call	#ser_hex
+		mov	uart_num, A
+		call	#ser_hex
+		mov	uart_num, Alo
+		call	#ser_hex
+#endif		
+		test	Aflag, #(FLAG_INF|FLAG_NAN|FLAG_ZERO) wz
+	if_nz	ret
+#ifdef DEBUG
+		mov	uart_char, #"%"
+		call	#ser_tx
+#endif		
+		'' sqrt(-x) -> NaN
+		test	Aflag, #(FLAG_SIGN) wz
+	if_nz	jmp	#sqrt_excep
+	
+		'' save original value of A
+		mov	Cexp, Aexp
+		mov	C, A
+		mov	Clo, Alo
+		mov	Cflag, Aflag
 
+		test	Aexp, #1 wz	' make Aexp even if necessary
+	if_nz	add	Aexp, #1
+	if_nz	shr	A, #1 wc
+	if_nz	rcr	Alo, #1
+
+		'' get square root
+#ifdef DEBUG
+		mov	uart_char, #">"
+		call	#ser_tx
+		mov	uart_num, A
+		call	#ser_hex
+		mov	uart_num, Alo
+		call	#ser_hex
+#endif		
+		sar	Aexp, #1
+		qsqrt	Alo, A
+		getqx	A	' A has square root in 2.30 format
+		
+		'' convert to 4.28
+		mov	Alo, A wz
+		shl	Alo, #30
+		shr	A, #2
+#ifdef DEBUG
+		mov	uart_char, #"^"
+		call	#ser_tx
+		mov	uart_num, A
+		call	#ser_hex
+		mov	uart_num, Alo
+		call	#ser_hex
+#endif		
+		cmp	Clo, #0 wz
+	if_nz	jmp	#sqrt_heron
+		cmps	Cexp, ##-FBIAS_EXP
+	if_be	jmp	#sqrt_heron
+		'' FIXME: should check here for exact squares,
+		'' for which FLAG_STICKY is not appropriate
+		or	Aflag, #FLAG_STICKY
+#ifdef DEBUG
+		mov	uart_char, #"<"
+		jmp	#ser_tx
+#endif		
+		ret
+		
+sqrt_heron
+#ifdef DEBUG
+		mov	uart_char, #"v"
+		call	#ser_tx
+#endif		
+		'' have to do an iteration of Heron's algorithm to get
+		'' the low bits
+		'' we have C = origA
+		''         A = x0
+		'' calculate x1 = 1/2 * (x0 + origA / x0)
+#ifdef DEBUG
+		mov	uart_char, #"!"
+		call	#ser_tx
+#endif		
+		call	#Normalize
+		
+		andn	Aflag, #FLAG_STICKY
+		andn	Cflag, #FLAG_STICKY
+
+		'' B = x0
+		mov	B, A
+		mov	Blo, Alo
+		mov	Bexp, Aexp
+		mov	Bflag, Aflag
+		'' A = origA
+		mov	A, C
+		mov	Alo, Clo
+		mov	Aexp, Cexp
+		mov	Aflag, Cflag
+		'' C = x0
+		mov	C, B
+		mov	Clo, Blo
+		mov	Cexp, Bexp
+		mov	Cflag, Aflag
+#ifdef DEBUG
+		mov	uart_char, #"/"
+		call	#ser_tx
+#endif		
+		'' A = origA / x0
+		call	#_Div
+#ifdef DEBUG
+		mov	uart_char, #"."
+		call	#ser_tx
+#endif		
+		andn	Aflag, #FLAG_STICKY
+		call	#Normalize
+		
+		'' A = origA / x0 + x0
+		mov	B, C
+		mov	Blo, Clo
+		mov	Bexp, Cexp
+		mov	Bflag, Cflag
+#ifdef DEBUG
+		mov	uart_char, #"+"
+		call	#ser_tx
+#endif		
+		call	#_Add
+		'' divide by 2
+		sub	Aexp, #1
+		ret
+sqrt_excep
+		mov	A, #0
+		mov	Alo, #0
+	_ret_	or	Aflag, #FLAG_NAN
+		
 {{
 
 
