@@ -179,16 +179,11 @@ __subdf3:
 	li	x17, 4005
 	ecall
 	ret
-	.globl __muldf3x
-	.globl __divdf3x
-	#
-	# double division and mult doesn't quite pass paranoia test
-	#
-__muldf3x:
+__muldf3:
 	li	x17, 4006
 	ecall
 	ret
-__divdf3x:
+__divdf3:
 	li	x17, 4007
 	ecall
 	ret
