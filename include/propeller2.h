@@ -256,4 +256,36 @@
 #define _clockfreq() (*(unsigned int *)0x14)
 #define _clockmode() (*(unsigned int *)0x18)
 
+// cordic routines
+#define _getqx()                                        \
+    ({                                                  \
+        unsigned long v;                                \
+        __asm__ __volatile__ (".insn i CUSTOM_1, 1, %0, 0x18(%0)" \
+                              : "=r"(v)  );    \
+        v;                                              \
+    })
+#define _getqy()                                        \
+    ({                                                  \
+        unsigned long v;                                \
+        __asm__ __volatile__ (".insn i CUSTOM_1, 1, %0, 0x18(%0)" \
+                              : "=r"(v)  );    \
+        v;                                              \
+    })
+
+#define _qlog(a)                                       \
+    ({                                                  \
+        unsigned long v;                                \
+        __asm__ __volatile__ (".insn i CUSTOM_1, 1, %0, 0xe(%1)" \
+                              : "=r"(v) : "r"(a)  );    \
+        v;                                                  \
+    })
+
+#define _qexp(a)                                       \
+    ({                                                  \
+        unsigned long v;                                \
+        __asm__ __volatile__ (".insn i CUSTOM_1, 1, %0, 0xf(%1)" \
+                              : "=r"(v) : "r"(a)  );    \
+        v;                                                  \
+    })
+
 #endif
