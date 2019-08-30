@@ -1,11 +1,13 @@
 {{
-        Double -- double precision floating point routines for
+        Double -- double (and single) precision floating point routines for
 	the Propeller
 
-        Copyright (c) 2012 Total Spectrum Software Inc.
+        Copyright (c) 2012-2019 Total Spectrum Software Inc.
 
         Released under the MIT License (see the end of this file for details)      
 }}
+
+'#define DEBUG
 
 CON
   FLAG_SIGN      = $1
@@ -56,7 +58,9 @@ expB		res	1
 
 tmp0		res	1
 tmp1		res	1
+tmp2		res	1
 
+Alo2
 count
 Btmp
 		res	1
@@ -213,10 +217,12 @@ DPack
 
 		'' fix up exponent
 		add	expA, ##DBIAS_EXP
-		cmps	expA, #0 wz, wc
-	if_be	call	#dpack_denorm
-		fles	expA, ##DMAX_EXP wc
+		fles	expA, ##DMAX_EXP-1 wc
+	if_c	mov	A, #0
+	if_c	or	Aflag, #(FLAG_INF)
 	if_c	jmp	#dpack_excep
+		cmps	expA, #0 wcz
+	if_be	call	#dpack_denorm
 
 		'' round here
 		'' we clear the implied one first, and allow the
@@ -309,7 +315,8 @@ FPack
 
 		'' fix up exponent
 		add	expA, #FBIAS_EXP
-		fles	expA, #FMAX_EXP wc
+		fles	expA, #FMAX_EXP-1 wc
+	if_c	or	Aflag, #FLAG_INF
 	if_c	jmp	#fpack_excep
 		cmps	expA, #0 wcz
 	if_be	call	#fpack_denorm
@@ -515,19 +522,29 @@ _addswap
 
 _addnoswap
 		'' shift B down as necessary
-		mov	 tmp0,expA
-		sub	 tmp0,expB wz
-	if_z	jmp	 #_doadd
-		cmp	 tmp0,#32 wz,wc
-	if_b	jmp	 #_addshift
-		cmp	 Blo,#0   wz,wc
-	if_nz	or	 Aflag, #FLAG_STICKY
-		mov	 Blo, B
-		mov	 B, #0
-		sub	 tmp0,#32 wz
-	if_z	jmp	 #_doadd
+		'' if we are shifting more than 63 then
+		'' we just return the original value
+
+		mov	tmp0,expA
+		sub	tmp0,expB wz
+	if_z	jmp	#_doadd
+		fle	tmp0,#63 wc
+		'' FIXME: should raise inexact here?
+	if_c	ret
+
+		'' check for short shift
+		cmp	tmp0,#32 wcz
+	if_b	jmp	#_addshift
+
+		'' shifting B by more than 32
+		cmp	Blo,#0   wz
+	if_nz	or	Aflag, #FLAG_STICKY
+		mov	Blo, B
+		mov	B, #0
+		sub	tmp0,#32 wz
 _addshift
-		fle	 tmp0,#31
+		'' now shift B, Blo by tmp0 which is < 32
+		'' (B,Blo) >> tmp0 = (B>>tmp0),  (B<<tmp1)|(Blo>>tmp0)
 		mov	 tmp1,#32
 		sub	 tmp1,tmp0
 		mov	 Btmp,Blo
@@ -535,8 +552,8 @@ _addshift
 	if_nz	or	 Aflag, #FLAG_STICKY
 		shr	 Blo, tmp0
 		mov	 Btmp, B
-		shl	 Btmp, tmp1
 		shr	 B, tmp0
+		shl	 Btmp, tmp1
 		or	 Blo, Btmp
 _doadd
 		'' now perform the addition
@@ -553,8 +570,11 @@ _dosub
 		'' in either case NAN is appropriate to return
 		test	Bflag, #FLAG_INF wz
 	if_nz	or	Aflag, #FLAG_NAN
-		sub	Alo, Blo wc, wz
-		subx	A, B wc, wz
+		test	Aflag, #FLAG_STICKY wc
+		subx	Alo, Blo wcz
+		subx	A, B
+		mov	Blo, Alo
+		or	Blo, A wz
 	if_z	andn	Aflag, #FLAG_SIGN
 	if_z	or	Aflag, #FLAG_ZERO
 		ret
@@ -570,34 +590,85 @@ _Mul
 		
 		'' calculate (A,Alo) * (B, Blo)
 		'' both are 4.60 numbers
-
-		'' we need to do:
+#ifdef DEBUG
+		mov	tmp2, ##@debugptr
+		wrlong	A, tmp2
+		add	tmp2, #4
+		wrlong	Alo, tmp2
+		add	tmp2, #4
+		wrlong	B, tmp2
+		add	tmp2, #4
+		wrlong	Blo, tmp2
+#endif		
 		'' (A * B) + (A * Blo) >> 32 + (B * Alo) >> 32 + (Alo * Blo) >> 64
+		'' we build up the result in:
+		'' A, Alo, Alo2, tmp1
+		mov	tmp1, #0
+		mov	tmp2, #0
 		cmp	Blo, #0 wz
-	if_z	mov	tmp0, #0
-	if_nz	qmul	A, Blo
-	if_nz	getqy	tmp0
-		cmp	Alo, #0 wz
-	if_z	mov	tmp1, #0
-	if_nz	qmul	B, Alo
-	if_nz	getqy	tmp1
+	if_nz	qmul	Alo, Blo
+	if_nz	getqx	tmp1
+	if_nz	getqy	tmp2	'' need to add tmp2 to Alo
+		cmp	tmp1, #0 wz
+	if_nz	or	Aflag, #FLAG_STICKY
 	
+		'' (Alo, Alo2) = B * Alo
+		mov	Alo2, #0
+		cmp	Alo, #0 wz
+	if_nz	qmul	B, Alo
+	if_nz	getqx	Alo2
+	if_nz	getqy	Alo
+
+		'' (tmp0,tmp1) = A * Blo
+		mov	tmp1, #0
+		mov	tmp0, #0
+		cmp	Blo, #0 wz
+	if_nz	qmul	A, Blo
+	if_nz	getqx	tmp1
+	if_nz	getqy	tmp0
+
 		qmul	A, B
-		getqy	A
-		getqx	Alo
-
-		add	Alo, tmp0 wc
-		addx	A, #0
-		add	Alo, tmp1 wc
-		addx	A, #0
-
-		'' now adjust: need to multiply final result by 16
-		shl    A, #4
-		mov    tmp0, Alo
-		shl    Alo, #4
-		shr    tmp0, #28
-		or     A, tmp0
+		'' OK, main multiply is in flight so we're done with A, Alo, etc
+		'' currently we have:
+		''  0, Alo, Alo2
+		''     tmp0, tmp1
+		''     0,    tmp2, 0
+		''
+		mov	A, #0
 		
+		add	Alo2, tmp1 wc
+		addx	Alo, tmp0 wc
+		addx	A, #0
+
+		add	Alo2, tmp2 wc
+		addx	Alo, #0 wc
+		addx	A, #0
+
+		getqx	tmp1
+		getqy	tmp0
+		add	Alo, tmp1 wc
+		addx	A, tmp0
+
+		'' now shift up 4 to convert
+		'' 8.120 to 4.124
+		mov	tmp0, Alo
+		mov	tmp1, Alo2
+		shr	tmp0, #28
+		shr	tmp1, #28
+		shl	A, #4
+		or	A, tmp0
+		shl	Alo, #4
+		or	Alo, tmp1
+		shl	Alo2, #4 wz
+	if_nz	or	Aflag, #FLAG_STICKY
+#ifdef DEBUG
+		mov	tmp1, ##@debugptr+12
+		wrlong	A, tmp1
+		add	tmp1, #4
+		wrlong	Alo, tmp1
+		add	tmp1, #4
+		wrlong	Alo2, tmp1
+#endif		
 _mul_sign
 		mov	tmp0,Aflag
 		xor	tmp0,Bflag
@@ -652,7 +723,10 @@ _DivSmall
 		cmp	tmp0, #0 wz
 	if_nz	or	Aflag, #FLAG_STICKY
 		ret
-		
+
+		''
+		'' perform 4.60 / 4.60 division
+		''
 _Div
 		mov	count,#61
 _doDiv

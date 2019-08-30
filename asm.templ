@@ -170,6 +170,34 @@ __divsf3:
 	li	x17, 4003
 	ecall
 	ret
+
+__adddf3:
+	li	x17, 4004
+	ecall
+	ret
+__subdf3:
+	li	x17, 4005
+	ecall
+	ret
+	.globl __muldf3x
+	.globl __divdf3x
+	#
+	# double division and mult doesn't quite pass paranoia test
+	#
+__muldf3x:
+	li	x17, 4006
+	ecall
+	ret
+__divdf3x:
+	li	x17, 4007
+	ecall
+	ret
+
+	.globl	__getdebug
+__getdebug:
+	li	x17, 3999
+	ecall
+	ret
 	
 	.data
 _heap_ptr:	
