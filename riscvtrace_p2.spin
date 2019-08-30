@@ -2503,22 +2503,26 @@ syscall_exit
 		''   32 bits microseconds
 syscall_gettimeofday
 		mov	dest, cycleh
-		getct	temp
+		getct	x12
 		cmp	dest, cycleh wz
 	if_nz	jmp	#syscall_gettimeofday
-		'' now (dest, temp) is 64 bit cycle counter
+
+		'' now (dest, x12) is 64 bit cycle counter
 		'' convert to seconds
-		setq	   dest
-		qdiv	   temp, ##(_CYCLES_PER_SEC)
-		getqx	   dest		' dest is seconds
-		getqy	   temp		' temp is remainder cycles
-		setq	   #0
-		qdiv	   temp, ##(_CYCLES_PER_SEC / 1000000)
-		getqx	   temp	 	' temp is microseconds
-		wrlong	   dest, x10
-		add	   x10, #4
-		wrlong	   temp, x10
-	_ret_	mov	   x10, #0
+		mov	temp, ##(_CYCLES_PER_SEC)
+		setq	dest
+		qdiv	x12, temp
+		getqx	dest		' dest is seconds
+		getqy	x12		' x12 is remainder cycles
+		mov	temp, #(_CYCLES_PER_SEC / 1000000)
+		qdiv	x12, temp
+		getqx	x12	 	' x12 is microseconds
+		wrlong	dest, x10
+		add	x10, #4
+		wrlong	x0, x10		' time_t is 64 bits
+		add	x10, #4
+		wrlong	x12, x10
+	_ret_	mov	x10, #0
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 '' floating point routines
