@@ -879,10 +879,6 @@ _Sqrt
 #endif		
 		test	Aflag, #(FLAG_INF|FLAG_NAN|FLAG_ZERO) wz
 	if_nz	ret
-#ifdef DEBUG
-		mov	uart_char, #"%"
-		call	#ser_tx
-#endif		
 		'' sqrt(-x) -> NaN
 		test	Aflag, #(FLAG_SIGN) wz
 	if_nz	jmp	#sqrt_excep
@@ -899,22 +895,10 @@ _Sqrt
 	if_nz	rcr	Alo, #1
 
 		'' get square root
-#ifdef DEBUG
-		mov	uart_char, #">"
-		call	#ser_tx
-		mov	uart_num, A
-		call	#ser_hex
-		mov	uart_num, Alo
-		call	#ser_hex
-#endif		
 		sar	Aexp, #1
 		qsqrt	Alo, A
 		getqx	A	' A has square root in 2.30 format
 		
-		'' convert to 4.28
-		mov	Alo, A wz
-		shl	Alo, #30
-		shr	A, #2
 #ifdef DEBUG
 		mov	uart_char, #"^"
 		call	#ser_tx
@@ -925,8 +909,14 @@ _Sqrt
 #endif		
 		cmp	Clo, #0 wz
 	if_nz	jmp	#sqrt_heron
-		cmps	Cexp, ##-FBIAS_EXP
+		cmps	Cexp, ##-FBIAS_EXP wcz
 	if_be	jmp	#sqrt_heron
+
+		'' convert to 4.28
+		mov	Alo, A wz
+		shl	Alo, #30
+		shr	A, #2
+
 		'' FIXME: should check here for exact squares,
 		'' for which FLAG_STICKY is not appropriate
 		or	Aflag, #FLAG_STICKY
@@ -935,67 +925,97 @@ _Sqrt
 		jmp	#ser_tx
 #endif		
 		ret
-		
+
+
 sqrt_heron
+		'' original value was X * 2^e, 0.5 <= X < 4
+		'' at this point we have an approximation of y = sqrt(X)
+		'' in A, as a 2.30 fixed point number 0.5 <= A < 2
+		'' The original X is in C, Clo
+		'' we can improve our approximation using Heron's
+		'' formula:
+		''   y' = 1/2 * (y + X / y)
+		''
 #ifdef DEBUG
 		mov	uart_char, #"v"
 		call	#ser_tx
-#endif		
-		'' have to do an iteration of Heron's algorithm to get
-		'' the low bits
-		'' we have C = origA
-		''         A = x0
-		'' calculate x1 = 1/2 * (x0 + origA / x0)
-#ifdef DEBUG
-		mov	uart_char, #"!"
-		call	#ser_tx
-#endif		
-		call	#Normalize
-		
-		andn	Aflag, #FLAG_STICKY
-		andn	Cflag, #FLAG_STICKY
-
-		'' B = x0
+#endif
+		'' save original 2.30 estimate in B
 		mov	B, A
-		mov	Blo, Alo
-		mov	Bexp, Aexp
-		mov	Bflag, Aflag
-		'' A = origA
-		mov	A, C
-		mov	Alo, Clo
-		mov	Aexp, Cexp
-		mov	Aflag, Cflag
-		'' C = x0
-		mov	C, B
-		mov	Clo, Blo
-		mov	Cexp, Bexp
-		mov	Cflag, Aflag
-#ifdef DEBUG
-		mov	uart_char, #"/"
-		call	#ser_tx
+
+		'' divide X by y giving a 4.60 bit result
+		'' the actual calculation is:
+		''    X = 2^-28 * C + 2^-60 * Clo
+		''    y = 2^-30 * B
+		'' so
+		''   X / y = 2^-2 * (C / B) + (2^-30) * Clo / B
+		''
+		''  thus 2^60 * X / y is:
+		''    2^58 * (C / B) + 2^30 * (Clo / B)
+		''
+		qfrac	C, B
+		getqx	A	' A * B + tmp1 =  2^32 * C
+		getqy	tmp1
+
+		qfrac	tmp1, B
+		getqx	Alo
+		getqy	tmp2	' Alo * B + tmp2 = 2^32 * tmp1
+
+		' so: 
+		' 2^32 * C = A * B + (Alo * B + tmp2) / 2^32
+		' (2^32 * C) / B = A + Alo / 2^32 + tmp2 / (2^32*B)
+		' 2^58 * (C/B) = 2^26 * (A + Alo / 2^32 + remainder
+		'              = (2^26 * A) + (Alo / 2^6) + remainder
+		'              = 2^32 * (A >> 6) + (Alo >> 6) + remainder
+
+		' for now, just remember that we need to shift A down by 6
+
+		' now (A, Alo) = (2^58 * (C / B)) << 6
+		' calculate 2^30 * Clo / B
+		'
+		qfrac	Clo, B
+		getqx	tmp0
+		getqy	tmp1	' tmp0 * B + tmp1 = 2^32 * Clo
+	
+		' 2^32 * Clo / B = (tmp0 + tmp1 / B)
+		' 2^36 * Clo / B = (tmp0 << 4) + (tmp1 << 4) / B
+		mov    tmp2, tmp1
+		shl    tmp1, #4
+		shr    tmp2, #28
+		setq   tmp2
+		qdiv   tmp1, B
+		getqx  tmp2	' tmp2 = (tmp1 << 4) / B
+
+		mov    tmp1, tmp0
+		shr    tmp0, #28
+		shl    tmp1, #4
+		add    tmp1, tmp2 wc
+		addx   tmp0, #0
+
+		'' OK, here (tmp0, tmp1) + (A, Alo) should be what we need
+		add	Alo, tmp1 wc
+		addx    A, tmp0 wc
+
+		' we may have overflowed, shift right
+		rcr	A, #1 wc
+		rcr	Alo, #1
+
+		'' now shift (A, Alo) right by 5
+		'' and divide by 2 (so total shift is 6)
+		'' or, just handle it in the normalization later
+#ifdef NEVER		
+		mov	tmp0, A
+		shl	tmp0, #26
+		shr	A, #6
+		shr	Alo, #6
+		or	Alo, tmp0
+#else
+		sub	Aexp, #6
 #endif		
-		'' A = origA / x0
-		call	#_Div
-#ifdef DEBUG
-		mov	uart_char, #"."
-		call	#ser_tx
-#endif		
-		andn	Aflag, #FLAG_STICKY
-		call	#Normalize
-		
-		'' A = origA / x0 + x0
-		mov	B, C
-		mov	Blo, Clo
-		mov	Bexp, Cexp
-		mov	Bflag, Cflag
-#ifdef DEBUG
-		mov	uart_char, #"+"
-		call	#ser_tx
-#endif		
-		call	#_Add
-		'' divide by 2
-		sub	Aexp, #1
-		ret
+		' FIXME: this is just a guess, but it's a good one;
+		' very few 56 bit numbers are perfect squares
+		or     Aflag, #FLAG_STICKY
+
 sqrt_excep
 		mov	A, #0
 		mov	Alo, #0

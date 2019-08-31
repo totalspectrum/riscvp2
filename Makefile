@@ -7,13 +7,13 @@
 FASTSPIN=/home/ersmith/Parallax/spin2cpp/build/fastspin -q
 
 # TOOLROOT and TOOLPREFIX are for the RISC-V toolchain
-# These are for a self-built standard RISC-V toolchain in /opt/riscv
-#TOOLROOT=/opt/riscv
-#TOOLPREFIX=riscv32-unknown-elf
+# These are for a self-built standard RISC-V toolchain in /opt/riscv-std-toolchain
+TOOLROOT=/opt/riscv-std-toolchain
+TOOLPREFIX=riscv32-unknown-elf
 
 # These are for the gnu mcu eclipse toolchain as described in README.md
-TOOLROOT=/opt/riscv-none-gcc
-TOOLPREFIX=riscv-none-embed
+#TOOLROOT=/opt/riscv-none-gcc
+#TOOLPREFIX=riscv-none-embed
 
 # these defaults should work well
 BINPREFIX=$(TOOLROOT)/bin/$(TOOLPREFIX)-
