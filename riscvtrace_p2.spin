@@ -18,8 +18,8 @@
 '#define TOTAL_SIZE 65536
 
 '' enable automatic inlining of functions; still experimental
-''#define AUTO_INLINE
-''#define OPTIMIZE_PTRA
+#define AUTO_INLINE
+#define OPTIMIZE_PTRA
 
 '' enable a second set of tags in HUB
 #define LVL2_CACHE_TAGS lvl2_tags
