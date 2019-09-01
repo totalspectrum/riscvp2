@@ -18,7 +18,8 @@
 '#define TOTAL_SIZE 65536
 
 '' enable automatic inlining of functions; still experimental
-#define AUTO_INLINE
+''#define AUTO_INLINE
+''#define OPTIMIZE_PTRA
 
 '' enable a second set of tags in HUB
 #define LVL2_CACHE_TAGS lvl2_tags
@@ -518,7 +519,9 @@ immval		long	0
 opdata
 divflags	long	0
 
+#ifdef OPTIMIZE_PTRA
 ptra_reg	long	-1	' register contained in ptra
+#endif
 #ifdef AUTO_INLINE
 ra_reg		long	1	' register used for return address
 ra_val		long	0	' address in ra, if known
@@ -619,14 +622,19 @@ compile_bytecode_start_line
 #ifdef AUTO_INLINE
 		neg	ra_reg, #1
 		neg	ra_val, #1
-#endif		
+#endif
+#ifdef OPTIMIZE_PTRA
 	_ret_	neg	ptra_reg, #1
-
+#else	
+		ret
+#endif		
 		'' compile one opcode
 compile_bytecode
+#ifdef OPTIMIZE_PTRA		
 		' if last instruction modified ptra_reg, then invalidate it
 		cmp	rd, ptra_reg wz
 	if_z	neg	ptra_reg, #1
+#endif	
 #ifdef AUTO_INLINE	
 		cmp	rd, ra_reg wz	' did we just modify the return address?
 	if_z	neg	ra_reg, #1
@@ -959,17 +967,21 @@ ldst_need_offset
 		' wrbyte rd, ptra[immval]
 		' can skip the "mov" if ptra already holds
 		' rs1
+#ifdef OPTIMIZE_PTRA		
 		cmp	ptra_reg, rs1 wz
 	if_z	jmp	#skip_ptra_mov
 		mov	ptra_reg, rs1
+#endif	
 		sets	mov_to_ptra, rs1
 		mov	jit_instrptr, #mov_to_ptra
 		call	#emit1		
 skip_ptra_mov
+#ifdef OPTIMIZE_PTRA
 		'' check to see if we're about to trash the register we
 		'' think is in ptra
 		cmp	 rd, ptra_reg wz
 	if_z	neg	 ptra_reg, #1
+#endif	
 		'' see if this is a short offset
 		mov	temp, #15
 		' note: low bits of func3 == 0 for byte, 1 for word, 2 for long
@@ -1122,7 +1134,9 @@ hub_jal
 		mov	ra_reg, rd	' save register and value
 		mov	ra_val, ptrb
 		mov	rd, #0
+#ifdef OPTIMIZE_PTRA		
 		neg	ptra_reg, #1	' FIXME??? not quite sure why this is necessary
+#endif		
 #endif	
 		mov	immval, opcode
 		sar	immval, #20	' sign extend, get some bits in place
@@ -1499,7 +1513,9 @@ hub_pinsetinstr
 		andn	locptra, jit_loc_mask
 		or	locptra, immval
 		sets	addptra, rs1
+#ifdef OPTIMIZE_PTRA		
 		neg	ptra_reg, #1
+#endif		
 		mov	jit_instrptr, #locptra
 		call	#emit1
 		mov	jit_instrptr, #addptra
@@ -2143,11 +2159,17 @@ emit_next_swsp_mov
 	if_z	jmp	#emit_next_swsp_mov
 
 end_swsp_sequence
+#ifdef OPTIMIZE_PTRA
 		cmp	ptra_reg, #x2 wz
 	if_nz	mov	ptra_reg, #x2
 	if_nz	sets	mov_to_ptra, #x2
 	if_nz	mov	jit_instrptr, #mov_to_ptra
 	if_nz	call	#emit1
+#else
+		sets	mov_to_ptra, #x2
+		mov	jit_instrptr, #mov_to_ptra
+		call	#emit1
+#endif		
 		rdlong	temp, #@setq_instr	' setq #0
 		setd	temp, func2
 		mov	jit_instrptr, #temp
@@ -2231,11 +2253,17 @@ emit_next_lwsp_item
 	if_z	jmp	#emit_next_lwsp_item
 
 end_lwsp_sequence
+#ifdef OPTIMIZE_PTRA
 		cmp	ptra_reg, #x2 wz
 	if_nz	mov	ptra_reg, #x2
 	if_nz	sets	mov_to_ptra, #x2
 	if_nz	mov	jit_instrptr, #mov_to_ptra
 	if_nz	call	#emit1
+#else
+		sets	mov_to_ptra, #x2
+		mov	jit_instrptr, #mov_to_ptra
+		call	#emit1
+#endif
 		rdlong	temp, #@setq_instr	' setq #0
 		setd	temp, func2
 		mov	jit_instrptr, #temp
