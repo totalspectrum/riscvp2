@@ -1122,6 +1122,7 @@ hub_jal
 		mov	ra_reg, rd	' save register and value
 		mov	ra_val, ptrb
 		mov	rd, #0
+		neg	ptra_reg, #1	' FIXME??? not quite sure why this is necessary
 #endif	
 		mov	immval, opcode
 		sar	immval, #20	' sign extend, get some bits in place
