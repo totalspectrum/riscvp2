@@ -61,13 +61,15 @@ Clo		res	1
 Cflag		res	1
 Cexp		res	1
 
+Alo2		res	1
+Alo3		res	1
+count		res	1
+Btmp		res	1
+
 tmp0		res	1
 tmp1		res	1
 tmp2		res	1
 
-Alo2		res	1
-count		res	1
-Btmp		res	1
 
 
 		fit	$1f0
@@ -636,6 +638,61 @@ _dosub
 	if_z	or	Aflag, #FLAG_ZERO
 		ret
 
+
+		'' MulAcc128:
+		'' multiply B,Blo * C,Clo
+		'' and accumulate result into A,Alo,Alo2,Alo3
+_MulAcc128
+		qmul	Blo, Clo
+		mov	rs1, B
+		mov	rs2, C
+		call	#imp_mulhu	' rs1 = low word, rd = high word
+		add	Alo, rs1 wc
+		addx	A, rd
+
+		getqx	tmp0
+		getqy	tmp1
+
+		or	tmp0, tmp1 wz
+	if_z	jmp	#_mulacc128_shift
+
+		add	Alo3, tmp0 wc
+		addx	Alo2, tmp1 wc
+		addx	Alo, #0 wc
+		addx	A, #0 wc
+		
+		'' now do the cross products
+		qmul   B, Clo
+		mov    rs1, Blo
+		mov    rs2, C
+		call   #imp_mulhu	' rs1 = low word, rd = high word
+		add    Alo2, rs1 wc
+		addx   Alo, rd wc
+		addx   A, #0
+		
+		getqx  tmp0
+		getqy  tmp1
+		add    Alo2, tmp0 wc
+		addx   Alo, tmp1 wc
+		addx   A, #0
+_mulacc128_shift
+		'' now we have the result as an 8.120 bit number in A, Alo, Alo2, Alo3
+		'' shift it up by 4 to get 4.128
+		shl	 A, #4
+		getnib	 tmp0, Alo, #7
+		or	 A, tmp0
+		
+		shl	 Alo, #4
+		getnib	 tmp0, Alo2, #7
+		or	 Alo, tmp0
+
+		shl	 Alo2, #4
+		getnib	 tmp0, Alo3, #7
+		or	 Alo2, tmp0
+
+	_ret_	shl	 Alo3, #4
+
+		
 		'' the actual multiply routine
 _Mul
 		mov	tmp0,Aflag
@@ -647,85 +704,22 @@ _Mul
 		
 		'' calculate (A,Alo) * (B, Blo)
 		'' both are 4.60 numbers
-#ifdef DEBUG
-		mov	tmp2, ##@debugptr
-		wrlong	A, tmp2
-		add	tmp2, #4
-		wrlong	Alo, tmp2
-		add	tmp2, #4
-		wrlong	B, tmp2
-		add	tmp2, #4
-		wrlong	Blo, tmp2
-#endif		
-		'' (A * B) + (A * Blo) >> 32 + (B * Alo) >> 32 + (Alo * Blo) >> 64
-		'' we build up the result in:
-		'' A, Alo, Alo2, tmp1
-		mov	tmp1, #0
-		mov	tmp2, #0
-		cmp	Blo, #0 wz
-	if_nz	qmul	Alo, Blo
-	if_nz	getqx	tmp1
-	if_nz	getqy	tmp2	'' need to add tmp2 to Alo
-		cmp	tmp1, #0 wz
-	if_nz	or	Aflag, #FLAG_STICKY
-	
-		'' (Alo, Alo2) = B * Alo
-		mov	Alo2, #0
-		cmp	Alo, #0 wz
-	if_nz	qmul	B, Alo
-	if_nz	getqx	Alo2
-	if_nz	getqy	Alo
-
-		'' (tmp0,tmp1) = A * Blo
-		mov	tmp1, #0
-		mov	tmp0, #0
-		cmp	Blo, #0 wz
-	if_nz	qmul	A, Blo
-	if_nz	getqx	tmp1
-	if_nz	getqy	tmp0
-
-		qmul	A, B
-		'' OK, main multiply is in flight so we're done with A, Alo, etc
-		'' currently we have:
-		''  0, Alo, Alo2
-		''     tmp0, tmp1
-		''     0,    tmp2, 0
-		''
+		mov	C, A wz
+	if_z	ret
+		mov	Clo, Alo
 		mov	A, #0
-		
-		add	Alo2, tmp1 wc
-		addx	Alo, tmp0 wc
-		addx	A, #0
+		mov	Alo, #0
+		mov	Alo2, #0
+		mov	Alo3, #0
+		call	#_MulAcc128
 
-		add	Alo2, tmp2 wc
-		addx	Alo, #0 wc
-		addx	A, #0
-
-		getqx	tmp1
-		getqy	tmp0
-		add	Alo, tmp1 wc
-		addx	A, tmp0
-
-		'' now shift up 4 to convert
-		'' 8.120 to 4.124
-		mov	tmp0, Alo
-		mov	tmp1, Alo2
-		shr	tmp0, #28
-		shr	tmp1, #28
-		shl	A, #4
-		or	A, tmp0
-		shl	Alo, #4
-		or	Alo, tmp1
-		shl	Alo2, #4 wz
-	if_nz	or	Aflag, #FLAG_STICKY
-#ifdef DEBUG
-		mov	tmp1, ##@debugptr+12
-		wrlong	A, tmp1
-		add	tmp1, #4
-		wrlong	Alo, tmp1
-		add	tmp1, #4
-		wrlong	Alo2, tmp1
-#endif		
+		' re-normalize if we lost any bits of accuracy?
+		test	A, ##$F0000000 wz
+	if_z	jmp	#imp_illegal
+	
+		or	 Alo2, Alo3 wz
+	if_nz	or	 Aflag, #FLAG_STICKY
+	
 _mul_sign
 		mov	tmp0,Aflag
 		xor	tmp0,Bflag
@@ -734,7 +728,7 @@ _mul_sign
 _Mul_ret
 		ret
 
-		'' special cases for inf, NaN
+		'' special cases for zero, inf, NaN
 _mul_excep
 		'' if we get here, we know that either the
 		'' NAN or INF bit is set
