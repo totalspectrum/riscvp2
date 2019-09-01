@@ -302,7 +302,7 @@ altr_op
 ''    call #routine
 ''    mov <rd>, dest
 multab
-	long	0	' special case ' call	#\imp_mul
+	call	#\imp_mul	  ' mul
 	call	#\imp_mulh	  ' mulh
 	call	#\imp_mulhsu	  ' mulhsu
 	call	#\imp_mulhu	  ' mulhu
@@ -679,11 +679,39 @@ jit_orig_cachepc
 		long	0
 jit_orig_ptrb	long	0
 
-#ifdef DEBUG_ENGINE
-		fit	$1d0
-#else
-		fit	$1c0
+#ifndef DEBUG_ENGINE
+		' fit the multiply routine into COG
+		' multiply rd = rs1 * rs2, giving only the low word
+imp_mul
+		getword	temp, rs1, #1	' temp = ahi
+		getword	rd, rs2, #1	' rd = bhi
+		mul	temp, rs2
+		mul	rd, rs1
+		add	rd, temp
+		shl	rd, #16
+		mul	rs1, rs2
+	_ret_	add	rd, rs1
+
+imp_mulhu
+		' multiply rs1*rs2, giving full 64 bit result
+		' with rs1 =  low word,
+		'      rd = high word
+		getword temp, rs1, #1	' temp = ahi
+		getword	temp2, rs2, #1	' temp22 = bhi
+		mov	rd, temp
+		mul	rd, temp2
+		mul	temp, rs2
+		mul	temp2, rs1
+		add	temp, temp2 wc
+		getword	temp2, temp, #1
+		bitc	temp2, #16
+		shl	temp, #16
+		mul	rs1, rs2
+		add	rs1, temp wc
+    _ret_	addx	rd, temp2
 #endif
+
+		fit	$1d0
 
 ' reserved for float use
   	 	org	$1d0
@@ -846,9 +874,8 @@ post_setup_vec
 '=========================================================================
 ' MATH ROUTINES
 '=========================================================================
-imp_mulhu
-		qmul	rs1, rs2
-    _ret_	getqy	rd
+
+
 		
     		' for signed 32 bit multiplication,
 		' do (hi,lo) = x*y as unsigned, then correct via
@@ -1045,7 +1072,7 @@ hub_emit_nop
 hub_muldiv
 	alts	func3, #multab
 	mov	opdata, 0-0 wz
-if_z	jmp	#handle_mul
+ if_z	jmp	#handle_mul
 
 handle_plain_call
 	sets	mul_templ, rs1

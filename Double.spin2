@@ -960,17 +960,22 @@ sqrt_heron
 		qfrac	tmp1, B
 		getqx	Alo
 		getqy	tmp2	' Alo * B + tmp2 = 2^32 * tmp1
-
+				' and 0 <= tmp2 < B
 		' so: 
 		' 2^32 * C = A * B + (Alo * B + tmp2) / 2^32
 		' (2^32 * C) / B = A + Alo / 2^32 + tmp2 / (2^32*B)
-		' 2^58 * (C/B) = 2^26 * (A + Alo / 2^32 + remainder
-		'              = (2^26 * A) + (Alo / 2^6) + remainder
-		'              = 2^32 * (A >> 6) + (Alo >> 6) + remainder
-
-		' for now, just remember that we need to shift A down by 6
-
+		' 2^58 * (C/B) = 2^26 * (A + Alo / 2^32 + tmp2 / (2^32*B))
+		'              = (2^26 * A) + (Alo / 2^6) + tmp2 / (2^6*B)
+		'              = 2^32 * (A >> 6) + (Alo >> 6) + (tmp2/B >> 6)
+		'              = [2^32 * A + Alo + tmp2 / B] >> 6
+		' but 0 <= tmp2 < B, so tmp2 / B < 1
+		'
+		cmp	tmp2, #0 wc
+	if_c	or	Aflag, #FLAG_STICKY
+	
 		' now (A, Alo) = (2^58 * (C / B)) << 6
+
+		'
 		' calculate 2^30 * Clo / B
 		'
 		qfrac	Clo, B
@@ -998,20 +1003,18 @@ sqrt_heron
 
 		' we may have overflowed, shift right
 		rcr	A, #1 wc
-		rcr	Alo, #1
-
+		rcr	Alo, #1 wc
+	if_c	or	Aflag, #FLAG_STICKY
+	
 		'' now shift (A, Alo) right by 5
 		'' and divide by 2 (so total shift is 6)
 		'' or, just handle it in the normalization later
-#ifdef NEVER		
 		mov	tmp0, A
 		shl	tmp0, #26
 		shr	A, #6
 		shr	Alo, #6
 		or	Alo, tmp0
-#else
-		sub	Aexp, #6
-#endif		
+		
 		' FIXME: this is just a guess, but it's a good one;
 		' very few 56 bit numbers are perfect squares
 		or     Aflag, #FLAG_STICKY
