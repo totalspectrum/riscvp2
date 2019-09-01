@@ -15,7 +15,8 @@ CON
   FLAG_INF	 = $4
   FLAG_NAN       = $8
   FLAG_STICKY	 = $10
-
+  FLAG_DOUBLE    = $20
+  
   FBIAS_EXP	 = 127
   FMAX_EXP	 = 255
 
@@ -81,7 +82,7 @@ count		res	1
 		'' then 52 bit mantissa
 		''
 DUnpack
-		mov	Aflag, #0
+		mov	Aflag, #FLAG_DOUBLE
 		mov	Aexp, A
 		shl	Aexp, #1 wc
 	if_c	or	Aflag, #FLAG_SIGN
@@ -914,7 +915,7 @@ _Sqrt
 		mov	uart_num, Alo
 		call	#ser_hex
 #endif
-		cmp	Clo, #0 wz
+		test	Cflag, #FLAG_DOUBLE wz
 	if_nz	jmp	#sqrt_heron
 		cmps	Cexp, ##-FBIAS_EXP wcz
 	if_be	jmp	#sqrt_heron
@@ -1012,7 +1013,8 @@ sqrt_heron
 		rcr	A, #1 wc
 		rcr	Alo, #1 wc
 	if_c	or	Aflag, #FLAG_STICKY
-	
+
+#ifdef NEVER
 		'' now shift (A, Alo) right by 5
 		'' and divide by 2 (so total shift is 6)
 		'' or, just handle it in the normalization later
@@ -1021,7 +1023,10 @@ sqrt_heron
 		shr	A, #6
 		shr	Alo, #6
 		or	Alo, tmp0
-		
+#else
+		sub	aexp, #1
+#endif
+
 		' FIXME: this is just a guess, but it's a good one;
 		' very few 56 bit numbers are perfect squares
 		or     Aflag, #FLAG_STICKY
