@@ -659,24 +659,29 @@ _MulAcc128
 		
 		mov	tmp0, Blo
 		or	tmp0, Clo wz
-	if_z	jmp	#_mulacc128_shift
+	if_z	jmp	#_mulacc128_shift_short
 
 		'' now do the cross products
-		qmul   B, Clo
-		mov    rs1, Blo
+		cmp    Clo, #0 wz
+	if_nz	qmul   B, Clo
+
+		mov    rs1, Blo  wz
+	if_z	mov    rd, #0
 		mov    rs2, C
-		call   #imp_mulhu	' rs1 = low word, rd = high word
+	if_nz	call   #imp_mulhu	' rs1 = low word, rd = high word
 
 		add    Alo2, rs1 wc
 		addx   Alo, rd wc
 		addx   A, #0
+
+		cmp    Clo, #0 wz
+	if_nz	getqx  tmp0
+	if_nz	getqy  tmp1
 		
-		getqx  tmp0
-		getqy  tmp1
-		
-		add    Alo2, tmp0 wc
-		addx   Alo, tmp1 wc
-		addx   A, #0
+	if_nz	add    Alo2, tmp0 wc
+	if_nz	addx   Alo, tmp1 wc
+	if_nz   addx   A, #0
+	
 _mulacc128_shift
 		'' now we have the result as an 8.120 bit number in A, Alo, Alo2, Alo3
 		'' shift it up by 4 to get 4.128
@@ -693,6 +698,14 @@ _mulacc128_shift
 		or	 Alo2, tmp0
 
 	_ret_	shl	 Alo3, #4
+
+_mulacc128_shift_short
+		'' now we have the result as an 8.120 bit number in A, Alo, Alo2, Alo3
+		'' shift it up by 4 to get 4.128
+		shl	 A, #4
+		getnib	 tmp0, Alo, #7
+		or	 A, tmp0		
+  _ret_		shl	 Alo, #4
 
 		'' the actual multiply routine
 _Mul
