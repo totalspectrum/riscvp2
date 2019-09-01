@@ -913,7 +913,7 @@ _Sqrt
 		call	#ser_hex
 		mov	uart_num, Alo
 		call	#ser_hex
-#endif		
+#endif
 		cmp	Clo, #0 wz
 	if_nz	jmp	#sqrt_heron
 		cmps	Cexp, ##-FBIAS_EXP wcz
@@ -1025,7 +1025,8 @@ sqrt_heron
 		' FIXME: this is just a guess, but it's a good one;
 		' very few 56 bit numbers are perfect squares
 		or     Aflag, #FLAG_STICKY
-
+		ret
+		
 sqrt_excep
 		mov	A, #0
 		mov	Alo, #0
