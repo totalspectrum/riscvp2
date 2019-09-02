@@ -44,7 +44,7 @@ default:
 #          deletes the local .elf files because the new P2 code may
 #          make them obsolete
 #
-EMUOBJS=rvp2.o rvp2_lut.o
+EMUOBJS=rvp2.o rvp2_lut.o fastmath.o
 
 install: $(EMUOBJS) $(LDSCRIPTS)
 	cp $(EMUOBJS) $(LDSCRIPTS) $(LIBROOT)
@@ -66,6 +66,9 @@ rvp2.s: asm.templ p2trace.bin
 
 rvp2_lut.s: asm.templ p2lut.bin
 	sed "s^%BINFILE%^p2lut.bin^g" < asm.templ > $@
+
+fastmath.o: fastmath.s
+	$(CC) -o $@ -c $<
 
 rvp2.o: rvp2.s p2trace.bin
 	$(CC) -o $@ -c $<
