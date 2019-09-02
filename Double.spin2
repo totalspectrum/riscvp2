@@ -218,17 +218,9 @@ Normalize_ret
 		'' input is assumed to be normalized
 		''
 DPack
-#ifdef DEBUG
-		mov	uart_char, #"m"
-		call	#ser_tx
-#endif		
 		test	Aflag, #(FLAG_INF|FLAG_NAN|FLAG_ZERO) wz
 	if_nz	jmp	#dpack_excep
 
-#ifdef DEBUG
-		mov	uart_char, #"n"
-		call	#ser_tx
-#endif		
 		call	#Normalize
 		'' fix up exponent
 		add	Aexp, ##DBIAS_EXP
@@ -255,10 +247,6 @@ DPack
 		addx  	A, #0
 
 dpack_exp
-#ifdef DEBUG
-		mov	uart_char, #"s"
-		call	#ser_tx
-#endif		
 		'' now shift down to 12.52
 		shr     Alo,#8
 		mov     tmp0,A
@@ -275,10 +263,6 @@ dpack_exp
 		shl	Aflag, #31
 		or	r1, Aflag
 DPack_ret
-#ifdef DEBUG
-		mov	uart_char, #"z"
-		call	#ser_tx
-#endif		
 		ret
 
 		''
@@ -296,10 +280,6 @@ _ddlp
 
 		ret
 dpack_excep
-#ifdef DEBUG
-		mov	uart_char, #"p"
-		call	#ser_tx
-#endif		
 		mov	A, #0
 		mov	Alo, #0
 		mov	Aexp, ##DMAX_EXP
@@ -307,10 +287,6 @@ dpack_excep
 	if_nz	mov	A, ##one_4_28
 	if_nz	shr	A, #1
 	if_nz	jmp	#dpack_exp
-#ifdef DEBUG
-		mov	uart_char, #"t"
-		call	#ser_tx
-#endif		
 		test	Aflag, #FLAG_ZERO wz
 	if_nz	mov	Aexp, #0
 		jmp	#dpack_exp
@@ -446,26 +422,11 @@ DDiv
 		jmp	#DPack
 
 DSqrt
-#ifdef DEBUG
-		mov	uart_char, #"&"
-		call	#ser_tx
-		pop	uart_num
-		push	uart_num
-		call	#ser_hex
-#endif		
 		mov	A, r1
 		mov	Alo, r0
 		call	#DUnpack
 		call	#_Sqrt
-		call	#DPack
-#ifdef DEBUG
-		mov	uart_char, #"*"
-		call	#ser_tx
-		pop	uart_num
-		push	uart_num
-		call	#ser_hex
-#endif		
-		ret
+		jmp	#DPack
 		
 	'' single precision operations
 FSub
@@ -875,37 +836,27 @@ _a_finite
 		'' square root calculation
 		''
 _Sqrt
-#ifdef DEBUG
-		mov	uart_char, #"$"
-		call	#ser_tx
-		mov	uart_num, Aflag
-		call	#ser_hex
-		mov	uart_num, A
-		call	#ser_hex
-		mov	uart_num, Alo
-		call	#ser_hex
-#endif		
 		test	Aflag, #(FLAG_INF|FLAG_NAN|FLAG_ZERO) wz
 	if_nz	ret
-#ifdef DEBUG
-		mov	uart_char, #"%"
-		call	#ser_tx
-#endif		
 		'' sqrt(-x) -> NaN
 		test	Aflag, #(FLAG_SIGN) wz
 	if_nz	jmp	#sqrt_excep
 	
-		'' save original value of A
-		mov	Cexp, Aexp
-		mov	C, A
-		mov	Clo, Alo
-		mov	Cflag, Aflag
-
+		' originally our mantissa is set up with 1 <= A < 2
+		' and in 4.60 format
+		' convert to 2.62 format
+		' note that 1 * 2^60 = 4 * 2^58
+		shl	Alo, #1 wc
+		rcl	A, #1
+		shl	Alo, #1 wc
+		rcl	A, #1
+		sub	Aexp, #2
+		
 		test	Aexp, #1 wz	' make Aexp even if necessary
 	if_nz	add	Aexp, #1
 	if_nz	shr	A, #1 wc
 	if_nz	rcr	Alo, #1
-
+	
 		'' get square root
 #ifdef DEBUG
 		mov	uart_char, #">"
@@ -914,95 +865,160 @@ _Sqrt
 		call	#ser_hex
 		mov	uart_num, Alo
 		call	#ser_hex
+		mov	uart_char, #"^"
+		mov	uart_num, Aexp
+		call	#ser_hex
+		call	#ser_nl
 #endif		
-		sar	Aexp, #1
 		qsqrt	Alo, A
-		getqx	A	' A has square root in 2.30 format
+
+		'' save original value of A
+		mov	Cexp, Aexp
+		mov	C, A
+		mov	Clo, Alo
+		mov	Cflag, Aflag
+
+		' do square root
+		sar	Aexp, #1
+		getqx	A	' A has square root in 1.31 format
 		
+		test	Cflag, #FLAG_DOUBLE wz
+	if_nz	jmp	#sqrt_heron
+		cmps	Cexp, ##-FBIAS_EXP
+	if_be	jmp	#sqrt_heron
+
 		'' convert to 4.28
 		mov	Alo, A wz
-		shl	Alo, #30
-		shr	A, #2
+		shl	Alo, #29
+		shr	A, #3
+
+		'' FIXME: should check here for exact squares,
+		'' for which FLAG_STICKY is not appropriate
+		or	Aflag, #FLAG_STICKY
+		ret
+		
+sqrt_heron
+		'' have to do an iteration of Heron's algorithm to get
+		'' the low bits
+		'' we have C = origA (2.30)
+		''         A = x0 (1.31)
+		'' calculate x1 = 1/2 * (x0 + origA / x0)
+		''
+		mov	Alo, #0
 #ifdef DEBUG
-		mov	uart_char, #"^"
+		mov	uart_char, #"!"
+		call	#ser_tx
+		mov	uart_num, A
+		call	#ser_hex
+		call	#ser_nl
+#endif		
+
+		'' x0 is 1.31
+		''
+		'' compute origA / x0
+		''
+		'' we know 0.5 <= x0 < 2
+		'' and     0.5 <= origA < 4
+		''         
+		'' Q = 2^32
+		'' S = 2^60
+		'' T = 2^62
+		''
+		'' origA = (C*Q + Clo) / T
+		'' x0 = B / R, where R = 2^31
+		''
+		'' so T * origA / x0 =  T * ((C*Q + Clo) / T) * (R / A)
+		''                   =  T * ((C*Q + Clo) / A) * (R / T)
+		''                   =  ((C*Q + Clo) / A) * R
+		''
+
+#ifdef DEBUG
+		mov	uart_char, #"%"
+		call	#ser_tx
+		mov	uart_num, C
+		call	#ser_hex
+		mov	uart_num, Clo
+		call	#ser_hex
+#endif
+		'' we're calculating 2^32 * C / A
+		'' what we really want is 2^31 * C / A
+		'' so our value is twice as big as it should be
+		setq	C
+		qdiv	Clo, A
+		getqx	B		' B is the quotient
+		getqy	tmp1		' tmp1 is the remainder
+
+		qfrac	tmp1, A
+		getqx	Blo
+		getqy	tmp1
+
+		'' so here B,Blo = 2*(origA / x0) as a 2.30 number
+		'' or, equivalently, origA / x0 as a 1.31 number
+
+#ifdef DEBUG
+		mov	uart_char, #"/"
+		call	#ser_tx
+		mov	uart_num, A
+		call	#ser_hex
+
+		mov	uart_char, #"="
+		call	#ser_tx
+		mov	uart_num, B
+		call	#ser_hex
+		mov	uart_num, Blo
+		call	#ser_hex
+		mov	uart_num, tmp1
+		call	#ser_hex
+		call	#ser_nl
+#endif		
+		
+#ifdef DEBUG
+		mov	uart_char, #"*"
+		call	#ser_tx
+		mov	uart_num, B
+		call	#ser_hex
+		mov	uart_num, Blo
+		call	#ser_hex
+		mov	uart_num, tmp1
+		call	#ser_hex
+		mov	uart_char, #"@"
+		call	#ser_tx
+		mov	uart_num, A
+		call	#ser_hex
+		call	#ser_nl
+#endif
+		
+		'' now make A = (x0 + (origA / x0)) as a 1.31 number
+		add	Alo, Blo wc
+		addx	A, B wc
+
+		'' finally divide by 2
+		rcr	A, #1 wc
+		rcr	Alo, #1
+
+#ifdef DEBUG
+		mov	uart_char, #"$"
 		call	#ser_tx
 		mov	uart_num, A
 		call	#ser_hex
 		mov	uart_num, Alo
 		call	#ser_hex
-#endif		
-		test	Cflag, #FLAG_DOUBLE wz
-	if_nz	jmp	#sqrt_heron
-		cmps	Cexp, ##-FBIAS_EXP
-	if_be	jmp	#sqrt_heron
-		'' FIXME: should check here for exact squares,
-		'' for which FLAG_STICKY is not appropriate
+		call	#ser_nl
+#endif
+		'' we have a 1.63 number here, but want 4.60
+		shr	A, #1 wc
+		rcr	Alo, #1
+		shr	A, #1 wc
+		rcr	Alo, #1
+		
+#ifdef DEBUG
+		mov	uart_num, A
+		call	#ser_hex
+		mov	uart_num, Alo
+		call	#ser_hex
+		call	#ser_nl
+#endif
 		or	Aflag, #FLAG_STICKY
-#ifdef DEBUG
-		mov	uart_char, #"<"
-		jmp	#ser_tx
-#endif		
-		ret
-		
-sqrt_heron
-#ifdef DEBUG
-		mov	uart_char, #"v"
-		call	#ser_tx
-#endif		
-		'' have to do an iteration of Heron's algorithm to get
-		'' the low bits
-		'' we have C = origA
-		''         A = x0
-		'' calculate x1 = 1/2 * (x0 + origA / x0)
-#ifdef DEBUG
-		mov	uart_char, #"!"
-		call	#ser_tx
-#endif		
-		call	#Normalize
-		
-		andn	Aflag, #FLAG_STICKY
-		andn	Cflag, #FLAG_STICKY
-
-		'' B = x0
-		mov	B, A
-		mov	Blo, Alo
-		mov	Bexp, Aexp
-		mov	Bflag, Aflag
-		'' A = origA
-		mov	A, C
-		mov	Alo, Clo
-		mov	Aexp, Cexp
-		mov	Aflag, Cflag
-		'' C = x0
-		mov	C, B
-		mov	Clo, Blo
-		mov	Cexp, Bexp
-		mov	Cflag, Aflag
-#ifdef DEBUG
-		mov	uart_char, #"/"
-		call	#ser_tx
-#endif		
-		'' A = origA / x0
-		call	#_Div
-#ifdef DEBUG
-		mov	uart_char, #"."
-		call	#ser_tx
-#endif		
-		andn	Aflag, #FLAG_STICKY
-		call	#Normalize
-		
-		'' A = origA / x0 + x0
-		mov	B, C
-		mov	Blo, Clo
-		mov	Bexp, Cexp
-		mov	Bflag, Cflag
-#ifdef DEBUG
-		mov	uart_char, #"+"
-		call	#ser_tx
-#endif		
-		call	#_Add
-		'' divide by 2
-		sub	Aexp, #1
 		ret
 sqrt_excep
 		mov	A, #0
