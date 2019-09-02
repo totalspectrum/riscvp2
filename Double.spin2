@@ -894,10 +894,10 @@ _Sqrt
 	if_be	jmp	#sqrt_heron
 
 		'' convert to 4.28
-		mov	Alo, A wz
-		shl	Alo, #29
-		shr	A, #3
-
+		mov	Alo, A
+		shl	Alo, #30
+		shr	A, #2
+		
 		'' FIXME: should check here for exact squares,
 		'' for which FLAG_STICKY is not appropriate
 		or	Aflag, #FLAG_STICKY
