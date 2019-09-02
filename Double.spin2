@@ -846,7 +846,8 @@ _Sqrt
 		'' sqrt(-x) -> NaN
 		test	Aflag, #(FLAG_SIGN) wz
 	if_nz	jmp	#sqrt_excep
-	
+
+		mov	Alo2, #0
 		' originally our mantissa is set up with 1 <= A < 2
 		' and in 4.60 format
 		' convert to 2.62 format
@@ -986,6 +987,11 @@ sqrt_heron
 		'' B, Blo, rd, rs1
 		getqx	tmp1
 		getqy	tmp0
+		'' double (tmp0, tmp1)
+		add	tmp1, tmp1 wc
+		addx	tmp0, tmp0 wc
+		addx	B, #0
+		
 		'' B, Blo + tmp0, rd + tmp1, rs1
 		add	tmp1, rd wc
 		addx	Blo, tmp0 wc
@@ -1030,7 +1036,6 @@ sqrt_heron
 	if_nz	or	Aflag, #FLAG_STICKY	' any bits chopped off?
 	
 		'' calculate e = A*A - origA
-		subr	tmp1, #0 wcz
 		sub	Blo, Clo wcz
 		subx	B, C wcz
 	if_b	jmp	#sqrt_underestimate
@@ -1062,9 +1067,35 @@ sqrt_heron
 		shl	tmp1, #1 wc
 		addx	Blo, #0
 		addx	B, #0
+#ifdef DEBUG
+		mov	uart_char, #"j"
+		call	#ser_tx
+		mov	uart_num, A
+		call	#ser_hex
+		mov	uart_num, Alo
+		call	#ser_hex
+		mov	uart_num, Alo2
+		call	#ser_hex
+		mov	uart_num, Aflag
+		call	#ser_hex
+		mov	uart_char, #">"
+		call	#ser_tx
+		mov	uart_num, B
+		call	#ser_hex
+		mov	uart_num, Blo
+		call	#ser_hex
+		call	#ser_nl
+#endif
 		cmp	Alo, Blo wcz
 		cmpx	A, B wcz
 	if_ae	ret			' A is a good answer
+#ifdef DEBUG
+		mov	uart_char, #"-"
+		call	#ser_tx
+		mov	uart_char, #"1"
+		call	#ser_tx
+		call	#ser_nl
+#endif		
 		sub	Alo, #1 wc
 		subx	A, #0		' use A-1
 		ret
@@ -1084,12 +1115,14 @@ sqrt_underestimate
 		''          A > e + 1/2
 		'' calculate B, Blo = -(B, Blo)
 		'' in 2's complement, -X = NOT(X) + 1
-		not	tmp1
+		'' round B first
+		shl	tmp1, #1 wc
+		addx	Blo, #0
+		addx	B, #0
+		
 		not	Blo
 		not	B
-		'' round off B while we're adding 1
-		add	tmp1, ##$80000001 wc
-		addx	Blo, #0 wc
+		add	Blo, #1 wc
 		addx	B, #0
 #ifdef DEBUG
 		mov	uart_char, #"-"
