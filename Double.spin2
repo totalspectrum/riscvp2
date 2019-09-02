@@ -1010,6 +1010,7 @@ sqrt_heron
 		shl	 tmp1, #4
 		getnib	 tmp0, rs1, #7
 		or	 tmp1, tmp0
+		shl	 rs1, #4
 #ifdef DEBUG
 		mov	uart_char, #"*"
 		call	#ser_tx
@@ -1018,6 +1019,8 @@ sqrt_heron
 		mov	uart_num, Blo
 		call	#ser_hex
 		mov	uart_num, tmp1
+		call	#ser_hex
+		mov	uart_num, rs1
 		call	#ser_hex
 		call	#ser_nl
 		mov	uart_char, #"%"
@@ -1036,7 +1039,9 @@ sqrt_heron
 	if_nz	or	Aflag, #FLAG_STICKY	' any bits chopped off?
 	
 		'' calculate e = A*A - origA
-		sub	Blo, Clo wcz
+		sub	rs1, #0 wcz
+		subx	tmp1, #0 wcz
+		subx	Blo, Clo wcz
 		subx	B, C wcz
 
 		'' here e = A*A - origA
