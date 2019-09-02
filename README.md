@@ -55,6 +55,10 @@ riscvp2_lut.ld: uses LUT memory as cache, good for smaller programs
 
 You may want to also pass `-specs=nano.specs`. This uses a reduced version of the newlib C library ("nano-newlib") which still has most useful functionality but is much smaller.
 
+#### -Wl,-Tfastmath.ld
+
+This is an option to link a faster floating point library, which uses P2 primitives. The code for this is invoked (for now) via `ecall`, but eventually the plan is to support RISC-V floating point instructions natively.
+
 ### Output
 
 You'll either have to use a loader that understands ELF files (e.g. the one from my p2gcc fork) or else convert the ELF file to binary:

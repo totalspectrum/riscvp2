@@ -31,7 +31,7 @@ CXX=$(BINPREFIX)g++
 #
 
 P2SRCS=riscvtrace_p2.spin jit/jit_engine.spinh jit/util_serial.spin2 Double.spin2
-LDSCRIPTS=riscvp2.ld riscvp2_lut.ld
+LDSCRIPTS=riscvp2.ld riscvp2_lut.ld fastmath.ld
 ASMSCRIPTS=rvp2.s rvp2_lut.s
 
 default:
