@@ -6,8 +6,13 @@
 
         Released under the MIT License (see the end of this file for details)      
 }}
-
 '#define DEBUG
+
+''
+'' define EXACT if results should be exactly correct; otherwise they may be
+'' wrong in the last digit (up to 0.5 ulp error)
+''
+''#define EXACT
 
 CON
   FLAG_SIGN      = $1
@@ -884,7 +889,7 @@ _Sqrt
 		
 		test	Cflag, #FLAG_DOUBLE wz
 	if_nz	jmp	#sqrt_heron
-		cmps	Cexp, ##-FBIAS_EXP
+		cmps	Cexp, ##-FBIAS_EXP wcz
 	if_be	jmp	#sqrt_heron
 
 		'' convert to 4.28
@@ -1012,14 +1017,97 @@ sqrt_heron
 		rcr	Alo, #1
 		
 #ifdef DEBUG
+		mov	uart_char, #"i"
+		call	#ser_tx
 		mov	uart_num, A
 		call	#ser_hex
 		mov	uart_num, Alo
 		call	#ser_hex
 		call	#ser_nl
 #endif
+#ifdef EXACT
+		'' OK, let's calculate the error A*A - origA
+		'' origA is in C
+		'' so set B = A*A
+		qmul	A, Alo
+		mov	rs1, A
+		mov	rs2, A
+		call	#imp_mulhu ' result in rd, rs1
+		mov	B, rd
+		mov	Blo, rs1
+		mov	rs1, Alo
+		mov	rs2, Alo
+		call	#imp_mulhu  ' result in rd, rs1
+		'' so now partial result is:
+		'' B, Blo, rd, rs1
+		getqx	tmp1
+		getqy	tmp0
+		'' B, Blo + tmp0, rd + tmp1, rs1
+		add	tmp1, rd wc
+		addx	Blo, tmp0 wc
+		addx	B, #0
+		'' B, Blo, tmp1, rs1 has 128 bit A*A
+		or	rs1, tmp1 wz
+	if_nz	or	Aflag, #FLAG_STICKY	' any bits chopped off?
+	
+		'' calculate e = A*A - origA
+		sub	Blo, Clo wcz
+		subx	B, C wcz
+	if_ae	jmp	#sqrt_underestimate
+		''
+		'' here we have e (the error term) in B, Blo, tmp1, rs1
+		'' e > 0, so A*A > origA
+		'' see if (A-1)*(A-1) would be a closer estimate to origA
+		'' the error e2 = (origA  - (A-1)*(A-1))
+		''              = origA - (A*A - 2*A + 1)
+		''              = (origA - A*A) + (2*A - 1)
+		''              = (2*A - 1) - e
+		'' so e2 - e    = (2*A - 1) - 2*e
+		''              = 2*(A-e) - 1
+		'' thus, e2 > e if A > e + 1/2
+		''
+		'' round off B
+		shl	tmp1, #1 wc
+		addx	Blo, #0
+		addx	B, #0
+		cmp	Alo, Blo wcz
+		cmpx	A, B wcz
+	if_ae	ret			' A is a good answer
+		sub	Alo, #1 wc
+		subx	A, #0		' use A-1
+		ret
+#else
 		or	Aflag, #FLAG_STICKY
 		ret
+#endif
+sqrt_underestimate
+		'' calculate B, Blo = -(B, Blo)
+		'' in 2's complement, -X = NOT(X) + 1
+		not	Blo
+		not	B
+		'' round off B while we're adding 1
+		shl	tmp1, #1 wc
+		addx	Blo, #1 wc
+		addx	B, #0
+		cmp	Alo, Blo wcz
+		cmpx	A, B wcz
+	if_ae	ret			' A is a good answer
+		add	Alo, #1 wc
+		addx	A, #0		' use A-1
+		ret
+
+		'' OK, e is origA - A*A
+		'' calculate e2 = (A+1)*(A+1) - origA
+		''              = (A*A + 2*A + 1) - origA
+		''              = 2*A + 1 - (origA - A*A)
+		''              = 2*A + 1 - e
+		'' so
+		'' e2 - e = 2*A + 1 - 2*e
+		''        = 2*(A-e) + 1
+		''        = 2*[(A-e) + 1/2]
+		'' and e2 > e if
+		''          A-e + 1/2 > 0
+		''          A > e + 1/2
 sqrt_excep
 		mov	A, #0
 		mov	Alo, #0
