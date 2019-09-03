@@ -79,7 +79,7 @@
 // CUSTOM1 opcode is 0x2b (10<<2)+3
 
 // TESTP
-#define _pin(pin)                                     \
+#define _pinr(pin)                                     \
     ({                                                  \
         unsigned long v;                                \
         __asm__ __volatile__ (".insn s CUSTOM_0, 7, %0, 0(%1)" \
@@ -155,6 +155,7 @@
 // Spin's name for "fltl" is "pinf"
 #define _pinf(p) _fltl(p)
 
+// Smart pin functions
 #define _wrpin(pin, value)                              \
     ({                                                  \
         unsigned long v = value;                         \
@@ -185,6 +186,7 @@
         v;                                                  \
     })
 
+// coginit
 #define _coginit(a, b, c)                                  \
     ({                                                  \
         unsigned long v;                                \
@@ -192,6 +194,9 @@
                               : "=r"(v) : "r"(a), "r"(b), "r"(c)  );    \
         v;                                                  \
     })
+
+// Catalina uses _cogstart_PASM instead of _coginit
+#define _cogstart_PASM(a, b, c) _coginit(a, b, c)
 
 #define _cognew(a, b) _coginit(0x10, a, b)
 
