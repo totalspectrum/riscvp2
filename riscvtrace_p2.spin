@@ -2443,10 +2443,12 @@ c_bnez
 #define ECALL_OPEN 1024
 #define ECALL_TIME 1062
 
-#define ECALL_DEBUG     3999
 #define ECALL_FPU	4000
 
 ecall_func
+		mov	x16, x17
+		sub	x16, ##ECALL_FPU wcz
+	if_ae	jmp	#syscall_fpu	
 		cmp	x17, #ECALL_WRITE wz
 	if_z	jmp	#syscall_write
 		cmp	x17, #ECALL_READ wz
@@ -2455,10 +2457,6 @@ ecall_func
 	if_z	jmp	#syscall_gettimeofday
 		cmp	x17, #ECALL_EXIT wz
 	if_z	jmp	#syscall_exit
-		cmp	x17, ##ECALL_DEBUG wcz
-	if_z	jmp	#syscall_getdebug	
-		cmp	x17, ##ECALL_FPU wcz
-	if_ae	jmp	#syscall_fpu	
 		neg	x10, #ENOSYS
 		ret
 syscall_write
@@ -2586,9 +2584,8 @@ syscall_gettimeofday
 #include "Double.spin2"
 
 syscall_fpu
-		sub	x17, ##ECALL_FPU
-		fle	x17, #10
-		jmprel	x17
+		fle	x16, #10
+		jmprel	x16
 		jmp	#@FAdd
 		jmp	#@FSub
 		jmp	#@FMul
@@ -2604,11 +2601,6 @@ syscall_fpu
 __err
 		neg	x10, #1
 		ret
-syscall_getdebug
-		mov	x10, ##@debugptr
-		ret
-
-debugptr	long	0[16]
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 '' cache memory
