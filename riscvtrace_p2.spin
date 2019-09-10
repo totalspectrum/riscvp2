@@ -193,6 +193,7 @@ optable
 
 sardata		sar	0,0 wz
 subdata		sub	0,0 wz
+subrdata	subr	0,0 wz
 negdata		neg	0,0 wz
 notdata		not	0,0 wz
 
@@ -275,7 +276,15 @@ reg_reg
 		testb	opdata, #ADD_CHECK_BITNUM wc
 	if_nc	jmp	#nosub
 		testb	opcode, #RV_SIGNOP_BITNUM  wc	' need sub instead of add?
-	if_c	mov	opdata, subdata
+	if_nc	jmp	#nosub
+	    	mov	opdata, subdata
+		' check for special case:
+		' sub xA, xB, xA -> subr xA, xA, xB
+		cmp	rd, rs2 wz
+	if_z	mov	rs2, rs1
+	if_z	mov	rs1, rd
+	if_z	mov	opdata, subrdata
+	
 		' check for special case:
 		' sub xA, x0, xB -> neg xA, xB
 		cmp   rs1, #0 wz
@@ -794,7 +803,7 @@ csr_vectors
 
 		'''''''''''''''''''''''''''''''''''''''''
 		'' actual CSR utility routines
-		'' these all recveive/return in pb
+		'' these all receive/return in pb
 		'''''''''''''''''''''''''''''''''''''''''
 uart_read_csr
 		call	#\ser_rx
