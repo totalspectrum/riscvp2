@@ -204,6 +204,9 @@ notdata		not	0,0 wz
 		'' $33 is reg-reg
 
 regfunc
+#ifdef OPTIMIZE_CMP_ZERO
+		neg	zcmp_reg, #1
+#endif		
 		cmp	rd, #0	wz	' if rd == 0, emit nop
 	if_z	jmp	#hub_emit_nop
 
@@ -242,9 +245,8 @@ nosar
 		' and with dest being the result
 		'
 continue_imm
-#ifdef OPTIMIZE_CMP_ZERO
-		neg	zcmp_reg, #1
-		testb	opdata, #WZ_BITNUM
+#ifdef OPTIMIZE_CMP_ZERO_NEVER
+		testb	opdata, #WZ_BITNUM wc
 	if_c	mov	zcmp_reg, rd
 #endif		
 		mov	dest, rd
@@ -255,9 +257,6 @@ check_xor
 		mov	opdata, notdata
 		setd	opdata, rd
 		sets	opdata, rs1
-#ifdef OPTIMIZE_CMP_ZERO
-		mov	zcmp_reg, rd
-#endif		
 		jmp	#emit_opdata_and_ret
 		'
 		' register<-> register operation
@@ -309,10 +308,14 @@ noaltr
 		'' now do the operation
 		sets	opdata, rs2
 		setd  	opdata, rs1
-#ifdef OPTIMIZE_CMP_ZERO
-		neg	zcmp_reg, #1
+#ifdef OPTIMIZE_CMP_ZERO_NEVER
+		' beware of slt instruction pattern, which has a cmp/cmps
+		' with Z set, but which should not set zcmp_reg
+		' for this, check for WCZ and skip zcmp_reg setting
+		neg	zcmp_reg, #1 wz
 		testb	opdata, #WZ_BITNUM
-	if_c	mov	zcmp_reg, rd
+    if_c	testbn	opdata, #WC_BITNUM wz
+    if_c_and_z	mov	zcmp_reg, rd
 #endif		
 emit_opdata_and_ret
 		mov	jit_instrptr, #opdata
@@ -566,22 +569,22 @@ start_of_tables
 ''                          4 -> operation is add
 ''                          8 -> operation is shift
 mathtab
-adddata		add	DST_ADD+DST_COMMUTE,regfunc wz
-shldata		shl	DST_SHL,regfunc wc
+adddata		add	DST_ADD+DST_COMMUTE,regfunc
+shldata		shl	DST_SHL,regfunc
 cmpsdata	cmps	0,sltfunc    wcz
 cmpdata		cmp	0,sltfunc    wcz
-xordata		xor	DST_XOR+DST_COMMUTE,regfunc wz
-shrdata		shr	DST_SHL,regfunc wc
-ordata		or	DST_COMMUTE,regfunc wz
-anddata		and	DST_COMMUTE,regfunc wz
+xordata		xor	DST_XOR+DST_COMMUTE,regfunc
+shrdata		shr	DST_SHL,regfunc
+ordata		or	DST_COMMUTE,regfunc
+anddata		and	DST_COMMUTE,regfunc
 loadtab
 		rdbyte	SIGNBYTE, loadop wc
 		rdword	SIGNWORD, loadop wc
 		rdlong	0, loadop
 		long	@illegalinstr
-		rdbyte	0, loadop wz
-		rdword	0, loadop wz
-ldlongdata	rdlong	0, loadop wz
+		rdbyte	0, loadop
+		rdword	0, loadop
+ldlongdata	rdlong	0, loadop
 		long	@illegalinstr
 storetab
 		wrbyte	0, storeop
