@@ -883,7 +883,36 @@ post_setup_vec
 ' MATH ROUTINES
 '=========================================================================
 
+#ifdef DEBUG_ENGINE
+		' multiply rd = rs1 * rs2, giving only the low word
+imp_mul
+		getword	temp, rs1, #1	' temp = ahi
+		getword	rd, rs2, #1	' rd = bhi
+		mul	temp, rs2
+		mul	rd, rs1
+		add	rd, temp
+		shl	rd, #16
+		mul	rs1, rs2
+	_ret_	add	rd, rs1
 
+imp_mulhu
+		' multiply rs1*rs2, giving full 64 bit result
+		' with rs1 =  low word,
+		'      rd = high word
+		getword temp, rs1, #1	' temp = ahi
+		getword	temp2, rs2, #1	' temp22 = bhi
+		mov	rd, temp
+		mul	rd, temp2
+		mul	temp, rs2
+		mul	temp2, rs1
+		add	temp, temp2 wc
+		getword	temp2, temp, #1
+		bitc	temp2, #16
+		shl	temp, #16
+		mul	rs1, rs2
+		add	rs1, temp wc
+    _ret_	addx	rd, temp2
+#endif
 		
     		' for signed 32 bit multiplication,
 		' do (hi,lo) = x*y as unsigned, then correct via
@@ -1522,14 +1551,6 @@ hub_pinsetinstr
 		call	#emit1
 		mov	dest, #ptra	' use ptra as the pin value	
 .do_op
-#ifdef DEBUG_ENGINE
-		mov	uart_char, #"/"
-		call	#ser_tx
-		mov	uart_num, dest
-		call	#ser_hex
-		mov	uart_num, immval
-		call	#ser_hex
-#endif		
 		' now the actual pin instruction
 		' rs2 contains the value to write to the pin
 		' dest contains the pin number
@@ -1908,7 +1929,9 @@ c_addi4spn
 		bitc	immval, #4
 		testb	opcode, #12 wc
 		bitc	immval, #5
-		mov	opdata, adddata
+		abs	immval	wc
+	if_nc	mov	opdata, adddata
+	if_c	mov	opdata, subdata
 		bith	opdata, #IMM_BITNUM
 		jmp	#continue_imm
 
@@ -2076,7 +2099,9 @@ c_addi16sp
 		signx	immval, #9
 '		mov	rd, #x2		' rd was already set to x2
 		mov	rs1, #x2
-		mov	opdata, adddata
+		abs	immval wc
+	if_nc	mov	opdata, adddata
+	if_c	mov	opdata, subdata
 		bith	opdata, #IMM_BITNUM		
 		jmp	#continue_imm
 
