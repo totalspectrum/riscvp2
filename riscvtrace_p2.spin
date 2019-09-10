@@ -17,13 +17,17 @@
 #define TOTAL_SIZE 32768
 '#define TOTAL_SIZE 65536
 
-'' enable automatic inlining of functions; still experimental
-#define AUTO_INLINE
-#define OPTIMIZE_PTRA
-
 '' enable a second set of tags in HUB
 #define LVL2_CACHE_TAGS lvl2_tags
 #endif
+
+'' enable automatic inlining of functions; still experimental
+#define AUTO_INLINE
+' enable optimization of cmp with 0
+' (not working properly yet)
+'#define OPTIMIZE_CMP_ZERO
+' enable optimization of ptra use
+#define OPTIMIZE_PTRA
 
 {{
    RISC-V Emulator for Parallax Propeller
@@ -297,6 +301,10 @@ noaltr
 		'' now do the operation
 		sets	opdata, rs2
 		setd  	opdata, rs1
+#ifdef OPTIMIZE_CMP_ZERO
+		mov	zcmp_reg, rd
+		bith	opdata, #WZ_BITNUM
+#endif		
 emit_opdata_and_ret
 		mov	jit_instrptr, #opdata
 		jmp	#emit1
@@ -527,6 +535,9 @@ immval		long	0
 opdata
 divflags	long	0
 
+#ifdef OPTIMIZE_CMP_ZERO
+zcmp_reg	long	-1	' register last compared to 0 as part of instruction
+#endif
 #ifdef OPTIMIZE_PTRA
 ptra_reg	long	-1	' register contained in ptra
 #endif
@@ -545,22 +556,22 @@ start_of_tables
 ''                          4 -> operation is add
 ''                          8 -> operation is shift
 mathtab
-adddata		add	DST_ADD+DST_COMMUTE,regfunc    wz
-shldata		shl	DST_SHL,regfunc    wcz 
+adddata		add	DST_ADD+DST_COMMUTE,regfunc
+shldata		shl	DST_SHL,regfunc wc
 		cmps	0,sltfunc    wcz
 cmpdata		cmp	0,sltfunc    wcz
-xordata		xor	DST_XOR+DST_COMMUTE,regfunc wz
-shrdata		shr	DST_SHL,regfunc    wcz
-ordata		or	DST_COMMUTE,regfunc wz
-anddata		and	DST_COMMUTE,regfunc wz
+xordata		xor	DST_XOR+DST_COMMUTE,regfunc
+shrdata		shr	DST_SHL,regfunc wc
+ordata		or	DST_COMMUTE,regfunc
+anddata		and	DST_COMMUTE,regfunc
 loadtab
-		rdbyte	SIGNBYTE, loadop wcz
-		rdword	SIGNWORD, loadop wcz
-		rdlong	0, loadop wz
+		rdbyte	SIGNBYTE, loadop wc
+		rdword	SIGNWORD, loadop wc
+		rdlong	0, loadop
 		long	@illegalinstr
-		rdbyte	0, loadop wz
-		rdword	0, loadop wz
-ldlongdata	rdlong	0, loadop wz
+		rdbyte	0, loadop
+		rdword	0, loadop
+ldlongdata	rdlong	0, loadop
 		long	@illegalinstr
 storetab
 		wrbyte	0, storeop
@@ -632,6 +643,9 @@ compile_bytecode_start_line
 		neg	ra_reg, #1
 		neg	ra_val, #1
 #endif
+#ifdef OPTIMIZE_CMP_ZERO
+		neg	zcmp_reg, #1
+#endif		
 #ifdef OPTIMIZE_PTRA
 	_ret_	neg	ptra_reg, #1
 #else	
@@ -708,24 +722,6 @@ imp_mul
 		shl	rd, #16
 		mul	rs1, rs2
 	_ret_	add	rd, rs1
-
-imp_mulhu
-		' multiply rs1*rs2, giving full 64 bit result
-		' with rs1 =  low word,
-		'      rd = high word
-		getword temp, rs1, #1	' temp = ahi
-		getword	temp2, rs2, #1	' temp22 = bhi
-		mov	rd, temp
-		mul	rd, temp2
-		mul	temp, rs2
-		mul	temp2, rs1
-		add	temp, temp2 wc
-		getword	temp2, temp, #1
-		bitc	temp2, #16
-		shl	temp, #16
-		mul	rs1, rs2
-		add	rs1, temp wc
-    _ret_	addx	rd, temp2
 #endif
 
 		fit	$1d0
@@ -903,6 +899,7 @@ imp_mul
 		shl	rd, #16
 		mul	rs1, rs2
 	_ret_	add	rd, rs1
+#endif
 
 imp_mulhu
 		' multiply rs1*rs2, giving full 64 bit result
@@ -921,7 +918,6 @@ imp_mulhu
 		mul	rs1, rs2
 		add	rs1, temp wc
     _ret_	addx	rd, temp2
-#endif
 		
     		' for signed 32 bit multiplication,
 		' do (hi,lo) = x*y as unsigned, then correct via
@@ -1125,6 +1121,9 @@ hub_muldiv
  if_z	jmp	#handle_mul
 
 handle_plain_call
+#ifdef OPTIMIZE_CMP_ZERO
+	neg	zcmp_reg, #1	' subroutine may trash Z
+#endif	
 	sets	mul_templ, rs1
 	sets	mul_templ+1, rs2
 	mov	mul_templ+2, opdata
@@ -1139,22 +1138,6 @@ handle_mul
 	setd	domul_pat+1, rd
 	mov	jit_instrptr, #domul_pat
 	jmp	#emit2
-
-#ifdef NEVER
-		' handle addi instruction specially
-		' if we get addi R, x0, N
-		' we emit mov R, #N instead
-		' similarly addi R, N, 0
-		' can become mov R, N
-hub_handle_addi
-		cmps	immval, #0 wcz
-	if_z	jmp	#emit_mov_rd_rs1
-	if_b	jmp	#handle_subi
-		cmp	rs1, #x0 wz
-	if_z	mov	dest, rd
-	if_z	jmp	#emit_mvi
-		jmp	#continue_imm
-#endif
 
 		' convert addi A, B, -N to sub A, B, N
 handle_subi
@@ -1241,8 +1224,19 @@ hub_condbranch
 		setd	opdata, rs1
 		sets	opdata, rs2
 		mov	jit_instrptr, #opdata
+		'' we can skip the cmp if the Z flag is required and
+		'' it's already set
+#ifdef OPTIMIZE_CMP_ZERO
+		test	func3, #%100 wz
+	if_z	cmp	rs2, #0 wz
+	if_z	cmp	rs1, zcmp_reg wz
+	if_nz	call	#emit1
+		cmp	rs2, #0 wz
+	if_z	mov	zcmp_reg, rs1
+	if_nz	neg	zcmp_reg, #1
+#else
 		call	#emit1
-
+#endif
 		'' now we need to calculate the new pc
 		'' this means re-arranging some bits
 		'' in immval
@@ -1326,6 +1320,9 @@ lui_aui_common
 		jmp    #emit_mvi
 		
 hub_slt_func
+#ifdef OPTIMIZE_CMP_ZERO
+		neg	zcmp_reg, #1
+#endif		
 		cmp	rd, #0	wz	' if rd == 0, emit nop
 	if_z	jmp	#\hub_emit_nop
 
@@ -1348,6 +1345,9 @@ hub_slt_func
 		call	#emit_big_instr	' cmp rs1, ##immval
 		jmp	#slt_fini
 slt_reg
+#ifdef OPTIMIZE_CMP_ZERO
+		neg	zcmp_reg, #1
+#endif		
 		'' for reg<->reg, output cmp rs1, rs2
 		sets	opdata, rs2
 		setd	opdata, rs1
@@ -1700,6 +1700,9 @@ hub_stdinstr
 		
 		'' privileged instruction compilation code
 hub_syspriv
+#ifdef OPTIMIZE_CMP_ZERO
+		neg	zcmp_reg, #1
+#endif		
 		cmp	rd, #0 wz
 	if_nz	jmp	#illegalinstr
 		cmp	immval, #0 wz
@@ -1941,6 +1944,10 @@ c_addi4spn
 		abs	immval	wc
 	if_nc	mov	opdata, adddata
 	if_c	mov	opdata, subdata
+#ifdef OPTIMIZE_CMP_ZERO
+		mov	zcmp_reg, rd
+		bith	opdata, #WZ_BITNUM
+#endif		
 		bith	opdata, #IMM_BITNUM
 		jmp	#continue_imm
 
@@ -1957,6 +1964,10 @@ c_addi
 		abs	immval wc
 	if_nc	mov	opdata, adddata
 	if_c	mov	opdata, subdata
+#ifdef OPTIMIZE_CMP_ZERO
+		mov	zcmp_reg, rd
+		bith	opdata, #WZ_BITNUM
+#endif		
 		bith	opdata, #IMM_BITNUM
 		setd	opdata, rd
 		sets	opdata, immval
@@ -2437,13 +2448,17 @@ c_bnez
 		testb	opcode, #12 wc
 		bitc	immval, #8
 		signx	immval, #8
-		
 		' emit compare
 		setd	opdata, rs1
 		sets	opdata, #x0
 		mov	jit_instrptr, #opdata
+#ifdef OPTIMIZE_CMP_ZERO
+		cmp	rs1, zcmp_reg wz
+	if_nz	mov	zcmp_reg, rs1
+	if_nz	call	#emit1
+#else	
 		call	#emit1
-
+#endif
 		' add in PC relative offset
 		add	immval, ptrb
 		sub	immval, #2
