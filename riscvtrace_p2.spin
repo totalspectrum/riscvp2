@@ -191,10 +191,10 @@ optable
 {1F}		long	@illegalinstr
 
 
-sardata		sar	0,0 wz
-subdata		sub	0,0 wz
-negdata		neg	0,0 wz
-notdata		not	0,0 wz
+sardata		sar	0,0
+subdata		sub	0,0
+negdata		neg	0,0
+notdata		not	0,0
 
 		'' code for typical reg-reg functions
 		'' such as add r0,r1
@@ -308,14 +308,15 @@ noaltr
 		'' now do the operation
 		sets	opdata, rs2
 		setd  	opdata, rs1
-#ifdef OPTIMIZE_CMP_ZERO_NEVER
+#ifdef OPTIMIZE_CMP_ZERO
 		' beware of slt instruction pattern, which has a cmp/cmps
 		' with Z set, but which should not set zcmp_reg
 		' for this, check for WCZ and skip zcmp_reg setting
+		' if C is non-zero
 		neg	zcmp_reg, #1 wz
-		testb	opdata, #WZ_BITNUM
-    if_c	testbn	opdata, #WC_BITNUM wz
-    if_c_and_z	mov	zcmp_reg, rd
+		testb	opdata, #WZ_BITNUM wc
+    if_c	testbn	opdata, #WC_BITNUM wc
+    if_c      	mov	zcmp_reg, rd
 #endif		
 emit_opdata_and_ret
 		mov	jit_instrptr, #opdata
@@ -2699,6 +2700,19 @@ syscall_gettimeofday
 		wrlong	x12, x10
 	_ret_	mov	x10, #0
 
+#ifdef OPTIMIZE_CMP_ZERO
+cmp_zero_debug
+		mov	uart_num, opdata
+		call	#ser_hex
+		mov	uart_num, rd
+		call	#ser_hex
+		mov	uart_num, rs1
+		call	#ser_hex
+		mov	uart_num, rs2
+		call	#ser_hex
+		call	#ser_nl
+		jmp	#illegalinstr
+#endif		
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 '' floating point routines
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
