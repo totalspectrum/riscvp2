@@ -67,8 +67,16 @@ CON
 
   RV_SIGNOP_BITNUM = 30		' RISCV bit for changing shr/sar
 
+  ' instruction flags  
   COMMUTATIVE_CHECK_BITNUM = 9
   XOR_CHECK_BITNUM = 10
+  ADD_CHECK_BITNUM = 11
+  SHR_CHECK_BITNUM = 12
+  ' same thing as dest values
+  DST_COMMUTE = 1
+  DST_XOR = 2
+  DST_ADD = 4
+  DST_SHL = 8
   
 DAT
 		org 0
@@ -195,7 +203,7 @@ regfunc
 		cmp	rd, #0	wz	' if rd == 0, emit nop
 	if_z	jmp	#hub_emit_nop
 
-		testb	opdata, #WC_BITNUM wc 	' check for sar/shr?
+		testb	opdata, #SHR_CHECK_BITNUM wc 	' check for sar/shr?
 	if_nc	jmp	#nosar
 		testb	opcode, #RV_SIGNOP_BITNUM wc	' want sar instead of shr?
 	if_c	mov	opdata, sardata
@@ -214,8 +222,8 @@ nosar
 
 		' special case: addi xa, x0, N
 		' can be translated as mv x0, N
-		' we can tell it's an add because it will have WZ_BITNUM set
-		testb	opdata, #WZ_BITNUM wc
+		' we can tell it's an add because it will have ADD_CHECK_BITNUM_BITNUM set
+		testb	opdata, #ADD_CHECK_BITNUM wc
 	if_nc	jmp	#continue_imm
 		' for addi
 		cmps	immval, #0 wcz
@@ -252,7 +260,7 @@ reg_reg
 		cmp	temp, #1 wz
 	if_z	jmp	#hub_muldiv
 	
-		testb	opdata, #WZ_BITNUM wc
+		testb	opdata, #ADD_CHECK_BITNUM wc
 	if_nc	jmp	#nosub
 		testb	opcode, #RV_SIGNOP_BITNUM  wc	' need sub instead of add?
 	if_c	mov	opdata, subdata
@@ -534,24 +542,25 @@ start_of_tables
 '' upper bits are acutlly instructions we wish to use
 '' dest bits contain flags: 1 -> operation is commutative
 ''                          2 -> operation is xor
-
+''                          4 -> operation is add
+''                          8 -> operation is shift
 mathtab
-adddata		add	1,regfunc    wz	' wz indicates we want add/sub
-shldata		shl	0,regfunc    wc ' wc indicates to regfunct that it's a shift
+adddata		add	DST_ADD+DST_COMMUTE,regfunc    wz
+shldata		shl	DST_SHL,regfunc    wcz 
 		cmps	0,sltfunc    wcz
 cmpdata		cmp	0,sltfunc    wcz
-xordata		xor	3,regfunc
-shrdata		shr	0,regfunc    wc	' wc indicates we want shr/sar
-ordata		or	1,regfunc
-anddata		and	1,regfunc
+xordata		xor	DST_XOR+DST_COMMUTE,regfunc wz
+shrdata		shr	DST_SHL,regfunc    wcz
+ordata		or	DST_COMMUTE,regfunc wz
+anddata		and	DST_COMMUTE,regfunc wz
 loadtab
-		rdbyte	SIGNBYTE, loadop wc
-		rdword	SIGNWORD, loadop wc
-		rdlong	0, loadop
+		rdbyte	SIGNBYTE, loadop wcz
+		rdword	SIGNWORD, loadop wcz
+		rdlong	0, loadop wz
 		long	@illegalinstr
-		rdbyte	0, loadop
-		rdword	0, loadop
-ldlongdata	rdlong	0, loadop
+		rdbyte	0, loadop wz
+		rdword	0, loadop wz
+ldlongdata	rdlong	0, loadop wz
 		long	@illegalinstr
 storetab
 		wrbyte	0, storeop
