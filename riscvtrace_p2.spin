@@ -242,6 +242,10 @@ nosar
 		' and with dest being the result
 		'
 continue_imm
+#ifdef OPTIMIZE_CMP_ZERO
+		bith	opdata, #WZ_BITNUM
+		mov	zcmp_reg, rd
+#endif		
 		mov	dest, rd
 		call	#emit_mov_rd_rs1
 		jmp	#emit_big_instr
@@ -1066,6 +1070,11 @@ final_ldst
 		sets	opdata, dest
 do_opdata_and_sign		
 		setd	opdata, rd
+#ifdef OPTIMIZE_CMP_ZERO
+		neg	zcmp_reg, #1		' assume Z reg trashed
+		testb	opdata, #WZ_BITNUM wc	' do we test Z in the load
+	if_c	mov	zcmp_reg, rd	   	' if so, set register
+#endif		
 		mov	jit_instrptr, #opdata
 		call	#emit1
 check_for_signext
@@ -1152,12 +1161,10 @@ hub_jal
 	if_ne	mov	dest, rd
 	if_ne	call	#emit_mvi	' move into rd
 #ifdef AUTO_INLINE
+		call	#compile_bytecode_start_line	' FIXME: why do we need this?
 		mov	ra_reg, rd	' save register and value
 		mov	ra_val, ptrb
 		mov	rd, #0
-#ifdef OPTIMIZE_PTRA		
-		neg	ptra_reg, #1	' FIXME??? not quite sure why this is necessary
-#endif		
 #endif	
 		mov	immval, opcode
 		sar	immval, #20	' sign extend, get some bits in place
@@ -1208,7 +1215,7 @@ hub_jalr
 #ifdef AUTO_INLINE
 skip_ret
 		mov	ptrb, ra_val
-		ret
+		jmp	#compile_bytecode_start_line
 #endif
 
 hub_condbranch		
@@ -2371,6 +2378,10 @@ c_slli
 		and	immval, #$1f
 		mov	opdata, shldata
 		bith	opdata, #IMM_BITNUM
+#ifdef OPTIMIZE_CMP_ZERO
+		bith	opdata, #WZ_BITNUM
+		mov	zcmp_reg, rd
+#endif		
 		sets	opdata, immval
 		setd	opdata, rd
 		mov	jit_instrptr, #opdata
@@ -2415,6 +2426,10 @@ c_xtra
 	if_z	mov	opdata, ordata
 		setd	opdata, rd
 		sets	opdata, rs2
+#ifdef OPTIMIZE_CMP_ZERO
+		bith	opdata, #WZ_BITNUM
+		mov	zcmp_reg, rd
+#endif		
 		mov	jit_instrptr, #opdata
 		jmp	#emit1
 	
