@@ -31,8 +31,10 @@ CXX=$(BINPREFIX)g++
 #
 
 P2SRCS=riscvtrace_p2.spin jit/jit_engine.spinh jit/util_serial.spin2 Double.spin2
-LDSCRIPTS=riscvp2.ld riscvp2_lut.ld fastmath.ld
-ASMSCRIPTS=rvp2.s rvp2_lut.s
+LDSCRIPTS_GEN=riscvp2.ld riscvp2_lut.ld
+LDSCRIPTS=$(LDSCRIPTS_GEN) fastmath.ld
+ASMSCRIPTS_GEN=rvp2.s rvp2_lut.s
+ASMSCRIPTS=$(ASMSCRIPTS_GEN)
 
 default:
 	@echo "make install       -- install P2 files in RISC-V toolchain"
@@ -100,4 +102,4 @@ hello-c++.binary: hello-c++.elf
 	$(BINPREFIX)objcopy -O binary $< $@
 
 clean:
-	rm -f *.binary *.bin *.elf *.o *.p2asm *,lst $(LDSCRIPTS) $(ASMSCRIPTS)
+	rm -f *.binary *.bin *.elf *.o *.p2asm *,lst $(LDSCRIPTS_GEN) $(ASMSCRIPTS_GEN)
