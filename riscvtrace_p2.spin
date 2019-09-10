@@ -191,10 +191,10 @@ optable
 {1F}		long	@illegalinstr
 
 
-sardata		sar	0,0
-subdata		sub	0,0
-negdata		neg	0,0
-notdata		not	0,0
+sardata		sar	0,0 wz
+subdata		sub	0,0 wz
+negdata		neg	0,0 wz
+notdata		not	0,0 wz
 
 		'' code for typical reg-reg functions
 		'' such as add r0,r1
@@ -245,8 +245,9 @@ nosar
 		' and with dest being the result
 		'
 continue_imm
-#ifdef OPTIMIZE_CMP_ZERO_NEVER
+#ifdef OPTIMIZE_CMP_ZERO
 		testb	opdata, #WZ_BITNUM wc
+	if_c	testbn	opdata, #WC_BITNUM wc
 	if_c	mov	zcmp_reg, rd
 #endif		
 		mov	dest, rd
@@ -570,22 +571,22 @@ start_of_tables
 ''                          4 -> operation is add
 ''                          8 -> operation is shift
 mathtab
-adddata		add	DST_ADD+DST_COMMUTE,regfunc
-shldata		shl	DST_SHL,regfunc
+adddata		add	DST_ADD+DST_COMMUTE,regfunc wz
+shldata		shl	DST_SHL,regfunc wz
 cmpsdata	cmps	0,sltfunc    wcz
 cmpdata		cmp	0,sltfunc    wcz
-xordata		xor	DST_XOR+DST_COMMUTE,regfunc
-shrdata		shr	DST_SHL,regfunc
-ordata		or	DST_COMMUTE,regfunc
-anddata		and	DST_COMMUTE,regfunc
+xordata		xor	DST_XOR+DST_COMMUTE,regfunc wz
+shrdata		shr	DST_SHL,regfunc wz
+ordata		or	DST_COMMUTE,regfunc wz
+anddata		and	DST_COMMUTE,regfunc wz
 loadtab
-		rdbyte	SIGNBYTE, loadop wc
-		rdword	SIGNWORD, loadop wc
-		rdlong	0, loadop
+		rdbyte	SIGNBYTE, loadop wcz
+		rdword	SIGNWORD, loadop wcz
+		rdlong	0, loadop wz
 		long	@illegalinstr
-		rdbyte	0, loadop
-		rdword	0, loadop
-ldlongdata	rdlong	0, loadop
+		rdbyte	0, loadop wz
+		rdword	0, loadop wz
+ldlongdata	rdlong	0, loadop wz
 		long	@illegalinstr
 storetab
 		wrbyte	0, storeop
