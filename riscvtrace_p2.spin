@@ -1,5 +1,6 @@
-'#define DEBUG_ENGINE
-'#define USE_DISASM
+#define DEBUG_ENGINE
+#define USE_DISASM
+'#define DEBUG_THOROUGH
 '#define USE_LUT_CACHE
 
 #define ATOMIC_LOCK 15
@@ -28,6 +29,8 @@
 #define OPTIMIZE_CMP_ZERO
 ' enable optimization of ptra use
 #define OPTIMIZE_PTRA
+' use setq+rdlong
+#define OPTIMIZE_SETQ_RDLONG
 
 {{
    RISC-V Emulator for Parallax Propeller
@@ -197,6 +200,10 @@ subrdata	subr	0,0 wz
 negdata		neg	0,0 wz
 notdata		not	0,0 wz
 
+#ifdef OPTIMIZE_SETQ_RDLONG
+subptra		sub	ptra, 0
+#endif
+
 		'' code for typical reg-reg functions
 		'' such as add r0,r1
 		'' needs to handle both immediate and reg rs2
@@ -259,7 +266,8 @@ check_xor
 		mov	opdata, notdata
 		setd	opdata, rd
 		sets	opdata, rs1
-		jmp	#emit_opdata_and_ret
+		jmp	#emit_opdata
+		
 		'
 		' register<-> register operation
 		'
@@ -328,7 +336,7 @@ noaltr
     if_c	testbn	opdata, #WC_BITNUM wc
     if_c      	mov	zcmp_reg, rd
 #endif		
-emit_opdata_and_ret
+emit_opdata
 		mov	jit_instrptr, #opdata
 		jmp	#emit1
 
@@ -663,6 +671,9 @@ flush_icache_pat
 		''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 		'' utility called at start of line
 compile_bytecode_start_line
+#ifdef DEBUG_THOROUGH
+		call	#debug_print
+#endif		
 #ifdef AUTO_INLINE
 		neg	ra_reg, #1
 		neg	ra_val, #1
@@ -1050,11 +1061,19 @@ skip_ptra_mov
 		and	func3, #3
 		mov	temp, immval
 		sar	temp, func3
+#ifdef NEW_HW
+		cmps	temp, #31 wcz
+	if_a	jmp	#big_offset
+		cmps	temp, ##-32 wcz
+	if_b	jmp	#big_offset
+		and	temp, #$3f
+#else
 		cmps	temp, #15 wcz
 	if_a	jmp	#big_offset
-		cmps	temp, ##-15 wcz
+		cmps	temp, #0 wcz
 	if_b	jmp	#big_offset
-		and	temp, #$1f
+		and	temp, #$f
+#endif
 		mov	immval, temp
 		'
 		' OK, we can emit a simple
@@ -1143,7 +1162,7 @@ emit_big_instr
 '
 hub_emit_nop
 		mov	opdata, #0	' nop instruction
-		jmp	#emit_opdata_and_ret
+		jmp	#emit_opdata
 
 '
 hub_muldiv
@@ -1415,7 +1434,7 @@ skip_rd
 		'' now emit the real operation
 		setd	opdata, immval
 		sets	opdata, rs1
-		jmp	#emit_opdata_and_ret
+		jmp	#emit_opdata
 not_cog
 		'' check for standard read-only regs
 		cmp	func3, #$C wz
@@ -1431,14 +1450,14 @@ not_cog
 
 		mov	opdata, getct_pat
   		setd	opdata, rd
-		jmp	#emit_opdata_and_ret
+		jmp	#emit_opdata
 not_mcount
 		'' $c80 == cycleh (high cycle counter)
 		cmp	immval, #$80 wz
 	if_nz	jmp	#illegalinstr
 		mov	opdata, getcth_pat
 		setd	opdata, rd
-		jmp	#emit_opdata_and_ret
+		jmp	#emit_opdata
 		
 		'' here's where we do our non-standard registers
 		''
@@ -1621,16 +1640,16 @@ hub_pinsetinstr
 		'' check for using value; if we do use it then we may need to do a bit test
 		test	func2, #%10 wc     ' do we use the value
 	if_c	or	opdata, #%110	    ' if not, emit dirrnd/dirnot
-	if_c	jmp	#emit_opdata_and_ret
+	if_c	jmp	#emit_opdata
 		cmp	rs2, #0 wz	     ' is the value known to be 0?
-	if_z	jmp	#emit_opdata_and_ret
+	if_z	jmp	#emit_opdata
 
 		'' if the value isn't known, emit a test #1 wc to get the value into c
 		setd	testbit_instr, rs2	' test the bit in the rs2 register
 		mov	jit_instrptr, #testbit_instr
 		call	#emit1
 		or	opdata, #%10		' emit dirc/dirnc
-		jmp	#emit_opdata_and_ret
+		jmp	#emit_opdata
 
 hub_wrpininstr
 #ifdef OPTIMIZE_CMP_ZERO
@@ -1647,7 +1666,7 @@ hub_wrpininstr
 		alts	func2, #wrpin_table
 		mov	opdata, 0-0
 		test	opdata, ##$3ffff wz	' if it's a jmp #illegalinstr
-	if_nz	jmp	#emit_opdata_and_ret
+	if_nz	jmp	#emit_opdata
 		and	immval, #$1ff wz
 	if_z	mov	dest, rs1     ' use rs1 as the pin value directly
 	if_z	jmp	#.skip_imm
@@ -1658,7 +1677,7 @@ hub_wrpininstr
 .skip_imm
 		setd	opdata, rs2
 		sets	opdata, dest
-		jmp	#emit_opdata_and_ret
+		jmp	#emit_opdata
 
 		''
 		'' read pin data instructions
@@ -1695,7 +1714,7 @@ hub_rdpininstr
 	if_z	sets	opdata, rs1
 		test	opdata, ##($1ff<<9) wz	' check dest field
 	if_z	setd	opdata, rd
-		jmp	#emit_opdata_and_ret
+		jmp	#emit_opdata
 		
 hub_coginitinstr
 #ifdef OPTIMIZE_CMP_ZERO
@@ -1752,7 +1771,7 @@ hub_stdinstr
 	if_nz	call	#emit_mov_rd_rs1
 		setd	opdata, rd
 		sets	opdata, rs2
-		jmp	#emit_opdata_and_ret
+		jmp	#emit_opdata
 		
 		'' privileged instruction compilation code
 hub_syspriv
@@ -1778,7 +1797,7 @@ compile_ecall
 		mov	opdata, imp_illegal
 		andn	opdata, jit_loc_mask
 		or	opdata, ##@ecall_func
-		jmp	#emit_opdata_and_ret
+		jmp	#emit_opdata
 
 		''
 		'' atomic operations
@@ -2207,11 +2226,12 @@ c_swsp
 		bitc	immval, #7
 		mov	rs1, #x2
 		mov	func3, #2
+#ifdef OPTIMIZE_SETQ_RDLONG
 		cmp	immval, #4 wcz
 	if_be	jmp	#hub_ldst_common
 		cmp	immval, #63 wcz
 	if_a	jmp	#hub_ldst_common
-	
+
 		'' check for a chain of swsp instructions with
 		'' decrementing offsets and incrementing registers
 		mov	dest, opcode		
@@ -2235,8 +2255,10 @@ c_swsp
 		'' ...
 		'' mov dummy+C, rd +N
 		'' mov ptra, x2
+		'' add ptra, #immval-4*N
 		'' setq #N
 		'' wrlong dummy+C, ptra(immval-4*N)
+		'' sub ptra, #immval-4*N
 		''
 #ifdef OPTIMIZE_CMP_ZERO
 		neg	zcmp_reg, #1
@@ -2283,21 +2305,34 @@ end_swsp_sequence
 		sets	mov_to_ptra, #x2
 		mov	jit_instrptr, #mov_to_ptra
 		call	#emit1
-#endif		
+#endif
+		mov	temp, addptra
+		bith	temp, #IMM_BITNUM
+		sets	temp, immval
+		mov	jit_instrptr, #temp
+		call	#emit1
+		
 		rdlong	temp, #@setq_instr	' setq #0
 		setd	temp, func2
 		mov	jit_instrptr, #temp
 		call	#emit1
 
 		' now emit wrlong
-		shr	immval, #2
-		or	immval, #%1000_00000 ' SUB mode for ptra[immval]
 		bith	opdata, #IMM_BITNUM
-		sets	opdata, immval
+		sets	opdata, #%1000_00000 ' mode for ptra[0]
 		setd	opdata, ioptr
-		mov	jit_instrptr, #opdata
 		mov	rd, #0		' do not erase ra info
-		jmp	#emit1
+		call	#emit_opdata
+
+		mov	temp, subptra
+		bith	temp, #IMM_BITNUM
+		sets	temp, immval
+		mov	jit_instrptr, #temp
+		call	#emit1
+#else
+		jmp	#hub_ldst_common
+#endif
+
 c_lwsp
 		mov	func3, #2
 		mov	rd, opcode
@@ -2317,6 +2352,7 @@ c_lwsp
 		mov	opdata, ldlongdata
 		mov	rs1, #x2
 
+#ifdef OPTIMIZE_SETQ_RDLONG
 		' check for a sequence of ldsw x, N(sp)
 		' where x is increasing and N decreasing;
 		' this is something gcc generates
@@ -2338,8 +2374,10 @@ c_lwsp
 	if_nz	jmp	#hub_ldst_common
 
 		' the load sequence is going to look like:
+		' add	ptra, #immval-4*n
 		' setq #N
-		' rdlong $1e0, ptra[immval-4*N]
+		' rdlong $1e0, ptra[0] ' cannot use offset on setq+rdlong
+		' sub	ptra, #immval-4*N
 		' mov rd+N, $1e0
 		' mov rd+N-1, $1e1
 		' ...
@@ -2381,20 +2419,29 @@ end_lwsp_sequence
 		mov	jit_instrptr, #mov_to_ptra
 		call	#emit1
 #endif
+		mov	temp, addptra
+		bith	temp, #IMM_BITNUM
+		sets	temp, immval
+		mov	jit_instrptr, #temp
+		call	#emit1
+
 		rdlong	temp, #@setq_instr	' setq #0
 		setd	temp, func2
 		mov	jit_instrptr, #temp
 		call	#emit1
 
 		' now emit wrlong
-		shr	immval, #2
-		or	immval, #%1000_00000 ' SUB mode for ptra[immval]
+		sets	opdata, #%1000_00000 ' SUB mode for ptra[0]
 		bith	opdata, #IMM_BITNUM
-		sets	opdata, immval
 		setd	opdata, #$1e0
-		mov	jit_instrptr, #opdata
-		call	#emit1
+		call	#emit_opdata
 
+		mov	temp, subptra
+		bith	temp, #IMM_BITNUM
+		sets	temp, immval
+		mov	jit_instrptr, #temp
+		call	#emit1
+		
 		' and the moves
 		mov   ioptr, #$1e0
 lwsp_move_loop
@@ -2406,7 +2453,10 @@ lwsp_move_loop
 		
 '		jmp	#illegalinstr
 		ret
-		
+#else
+		jmp	#hub_ldst_common
+#endif
+
 c_sw
 		mov	opdata, swlongdata
 		jmp	#c_lwswcommon
