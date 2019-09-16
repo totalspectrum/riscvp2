@@ -1,5 +1,5 @@
-#define DEBUG_ENGINE
-#define USE_DISASM
+'#define DEBUG_ENGINE
+'#define USE_DISASM
 '#define DEBUG_THOROUGH
 '#define USE_LUT_CACHE
 
@@ -199,10 +199,6 @@ subdata		sub	0,0 wz
 subrdata	subr	0,0 wz
 negdata		neg	0,0 wz
 notdata		not	0,0 wz
-
-#ifdef OPTIMIZE_SETQ_RDLONG
-subptra		sub	ptra, 0
-#endif
 
 		'' code for typical reg-reg functions
 		'' such as add r0,r1
@@ -566,6 +562,10 @@ rs2		long	0
 immval		long	0
 opdata
 divflags	long	0
+
+#ifdef OPTIMIZE_SETQ_RDLONG
+subptra		sub	ptra, 0
+#endif
 
 #ifdef OPTIMIZE_CMP_ZERO
 zcmp_reg	long	-1	' register last compared to 0 as part of instruction
@@ -2328,7 +2328,7 @@ end_swsp_sequence
 		bith	temp, #IMM_BITNUM
 		sets	temp, immval
 		mov	jit_instrptr, #temp
-		call	#emit1
+		jmp	#emit1
 #else
 		jmp	#hub_ldst_common
 #endif
