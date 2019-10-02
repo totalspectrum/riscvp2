@@ -293,4 +293,6 @@
         v;                                                  \
     })
 
+extern void _clkset(unsigned int mode, unsigned int freq);
+
 #endif

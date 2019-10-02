@@ -2626,6 +2626,7 @@ c_bnez
 #define ECALL_TIME 1062
 
 #define ECALL_FPU	4000
+#define ECALL_CLKSET    4001
 
 ecall_func
 		mov	x16, x17
@@ -2639,6 +2640,8 @@ ecall_func
 	if_z	jmp	#syscall_gettimeofday
 		cmp	x17, #ECALL_EXIT wz
 	if_z	jmp	#syscall_exit
+		cmp	x17, ##ECALL_CLKSET wz
+	if_z	jmp	#syscall_clkset
 		neg	x10, #ENOSYS
 		ret
 syscall_write
@@ -2760,6 +2763,11 @@ syscall_gettimeofday
 		wrlong	x12, x10
 	_ret_	mov	x10, #0
 
+syscall_clkset
+		mov	pa, x10		' first parameter is clock mode
+		mov	pb, x11		' second is clock frequency
+		jmp	#ser_clkset
+		
 #ifdef OPTIMIZE_CMP_ZERO
 cmp_zero_debug
 		mov	uart_num, opdata

@@ -145,9 +145,9 @@ __riscv_restore_0:
 	addi	sp,sp,16
 	ret
 
-	.globl	__getdebug
-__getdebug:
-	li	x17, 3999
+	.globl	_clkset
+_clkset:
+	li	x17, 4001
 	ecall
 	ret
 	

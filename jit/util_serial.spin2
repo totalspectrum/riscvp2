@@ -25,32 +25,54 @@ _CYCLES_PER_SEC=160_000_000
 
 DAT
 
-		' initialize the serial system using RX_PIN, TX_PIN, and BAUD
-ser_init
-		' set system clock
-		hubset	     #0
+		' set clock to specified speed
+		' pa == clock mode
+		' pb == clock frequency
+ser_clkset
+		hubset	#0
 		nop
-		mov	pa, ##_CLOCK_MODE
 		hubset	pa
 		wrlong	pa, #$18
-		waitx	##20_000_000/100
+		wrlong	pb, #$14
+		waitx	##20_000_000/100	' let things settle a bit
 		or	pa, #3
 		hubset	pa
 
-		mov	pa, ##7 + ((_CYCLES_PER_SEC / BAUD) << 16) ' bitperiod
+		' now update bit periods for baud
+		rdlong	pa, #$1c 	 ' read current baud setting
+
+		' calculate (clock_freq<<16) / baud
+		' clock_freq can range up to 400_000_000
+		' baud can range down to 2400
+		' pa has baud rate
+		' pb has clock_freq
+		mov	temp, pb
+		shr	temp, #16
+		shl	pb, #16
+		setq	temp
+		qdiv	pb, pa
+		getqx	temp	' temp is (clock_freq<<16) / baud
+		and	temp, ##$fffffc00
+		or	temp, #7	' set 8 bit for send/receive
+
+		' set new baud parameters based on new clock frequency
+		dirl	#TX_PIN
+		dirl	#RX_PIN
 		wrpin	##_txmode, #TX_PIN
-		wxpin	pa, #TX_PIN
+		wxpin	temp, #TX_PIN
 		dirh	#TX_PIN
 		wrpin	##_rxmode, #RX_PIN
-		wxpin	pa, #RX_PIN
+		wxpin	temp, #RX_PIN
 		dirh	#RX_PIN
-
-		mov	pa, ##_CYCLES_PER_SEC
-		wrlong	pa, #$14	' update system frequency data
-		shr	pa, #1
-		waitx	pa
 		ret
-
+		
+		' initialize the serial system using RX_PIN, TX_PIN, and BAUD
+ser_init
+		wrlong	##BAUD, #$1c	' set baud
+		mov	pa, ##_CLOCK_MODE
+		mov	pb, ##_CYCLES_PER_SEC
+		jmp	#ser_clkset
+		
 		'' receive a single character into uartchar
 		'' or set it to -1 if no character available
 ser_rx
