@@ -93,10 +93,10 @@ setq_instr	setq	   #0
 		coginit	   pa, #@enter
 		' config area
 		orgh $10
-		long	   0
-		long	   23_000_000	' frequency
-		long	   0		' clock mode
-		long	   230_400	' baud
+		long	   0		' $10 == reserved
+		long	   23_000_000	' $14 == frequency
+		long	   0		' $18 == clock mode
+		long	   230_400	' $1c == baud
 
 		long	   0[8]		' reserved
 
@@ -194,11 +194,11 @@ optable
 {1F}		long	@illegalinstr
 
 
-sardata		sar	0,0 wz
-subdata		sub	0,0 wz
-subrdata	subr	0,0 wz
-negdata		neg	0,0 wz
-notdata		not	0,0 wz
+sardata		sar	0-0,0-0 wz
+subdata		sub	0-0,0-0 wz
+subrdata	subr	0-0,0-0 wz
+negdata		neg	0-0,0-0 wz
+notdata		not	0-0,0-0 wz
 
 		'' code for typical reg-reg functions
 		'' such as add r0,r1
@@ -427,19 +427,19 @@ locptra		loc	ptra, #\0
 addptra		add	ptra, 0-0
 
 wrpin_table
-		wrpin	0, 0
-		wxpin	0, 0
-		wypin	0, 0
+		wrpin	0-0, 0-0
+		wxpin	0-0, 0-0
+		wypin	0-0, 0-0
 		jmp	#\illegalinstr
 
 rdpin_table
-		wrc	0		' NOTE: S is nonzero, only D is used
-		rdpin	0, 0
-		rqpin	0, 0
-		akpin	0		' NOTE: D is 1, only S is used
+		wrc	0-0		' NOTE: S is nonzero, only D is used
+		rdpin	0-0, 0-0
+		rqpin	0-0, 0-0
+		akpin	0-0		' NOTE: D is 1, only S is used
 		
 dirinstr
-		dirl	0
+		dirl	0-0
 testbit_instr
 		test	0-0, #1 wc
 testpin_instr
@@ -514,7 +514,7 @@ emit_mov_rd_rs1
 #endif		
 		mov	jit_instrptr, #mov_pat
 		jmp	#emit1
-mov_pat		mov	0,0
+mov_pat		mov	0-0,0-0
 
 '=========================================================================
 ' system instructions
@@ -564,7 +564,7 @@ opdata
 divflags	long	0
 
 #ifdef OPTIMIZE_SETQ_RDLONG
-subptra		sub	ptra, 0
+subptra		sub	ptra, 0-0
 #endif
 
 #ifdef OPTIMIZE_CMP_ZERO
@@ -841,9 +841,12 @@ millis_read_csr
 		cmp	dest, cycleh wz
 	if_nz	jmp	#millis_read_csr
 		' now we have a 64 bit number (dest, temp)
-		' want to divide this by 160_000 to get milliseconds
+		' want to divide this by (frequency/1000) to get milliseconds
+		rdlong	pb, #$14    	' get frequency
+		qdiv	pb, ##1000
+		getqx	pb		' now have freq/1000 in pb
 		setq	dest
-		qdiv	temp, ##(_CYCLES_PER_SEC/1000)
+		qdiv	temp, pb
 		getqx	pb
 		ret
 
@@ -2748,13 +2751,17 @@ syscall_gettimeofday
 
 		'' now (dest, x12) is 64 bit cycle counter
 		'' convert to seconds
-		mov	temp, ##(_CYCLES_PER_SEC)
+		'' read frequency from $14
+		rdlong	temp, #$14    	' get frequency into temp
+		qdiv	temp, ##1000000
+		getqx	temp2		' get frequency / 1000000 into temp2
+		
 		setq	dest
 		qdiv	x12, temp
 		getqx	dest		' dest is seconds
 		getqy	x12		' x12 is remainder cycles
-		mov	temp, #(_CYCLES_PER_SEC / 1000000)
-		qdiv	x12, temp
+
+		qdiv	x12, temp2
 		getqx	x12	 	' x12 is microseconds
 		wrlong	dest, x10
 		add	x10, #4

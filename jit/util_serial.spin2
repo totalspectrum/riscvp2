@@ -6,14 +6,14 @@
 	'' should do so: but beware, any XBYTE based interpreter
 	'' must save/restore the rdfast ptr if it uses HUBEXEC
 	''
-	'' the upper level must define:
-	'' _CLOCK_MODE = P2 clock setting mode
-	'' _CYCLES_PER_SEC = P2 frequency
+	'' we must define:
+	'' _DEFAULT_CLOCK_MODE = P2 clock setting mode (only if $18 == 0)
+	'' _DEFAULT_CYCLES_PER_SEC = P2 frequency
 	'' _BAUD = baud rate to use
 CON
 
-_CLOCK_MODE=$010007f8
-_CYCLES_PER_SEC=160_000_000
+_DEFAULT_CLOCK_MODE=$010007f8
+_DEFAULT_CYCLES_PER_SEC=160_000_000
 
   BAUD=230_400
   RX_PIN = 63
@@ -69,8 +69,11 @@ ser_clkset
 		' initialize the serial system using RX_PIN, TX_PIN, and BAUD
 ser_init
 		wrlong	##BAUD, #$1c	' set baud
-		mov	pa, ##_CLOCK_MODE
-		mov	pb, ##_CYCLES_PER_SEC
+		rdlong	pb, #$14	' get frequency
+		rdlong	pa, #$18 wz	' get clock mode; if 0, use defaults
+
+	if_z	mov	pa, ##_DEFAULT_CLOCK_MODE
+	if_z	mov	pb, ##_DEFAULT_CYCLES_PER_SEC
 		jmp	#ser_clkset
 		
 		'' receive a single character into uartchar
