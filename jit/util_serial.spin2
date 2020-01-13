@@ -9,13 +9,13 @@
 	'' we must define:
 	'' _DEFAULT_CLOCK_MODE = P2 clock setting mode (only if $18 == 0)
 	'' _DEFAULT_CYCLES_PER_SEC = P2 frequency
-	'' _BAUD = baud rate to use
+	'' _DEFAULT_BAUD = baud rate to use (only if $1c == 0)
 CON
 
 _DEFAULT_CLOCK_MODE=$010007f8
 _DEFAULT_CYCLES_PER_SEC=160_000_000
 
-  BAUD=230_400
+_DEFAULT_BAUD=230_400
   RX_PIN = 63
   TX_PIN = 62
 
@@ -68,7 +68,8 @@ ser_clkset
 		
 		' initialize the serial system using RX_PIN, TX_PIN, and BAUD
 ser_init
-		wrlong	##BAUD, #$1c	' set baud
+		rdlong	pb, #$1c wz	' check existing baud setting
+	if_z	wrlong	##_DEFAULT_BAUD, #$1c	' set baud if none given
 		rdlong	pb, #$14	' get frequency
 		rdlong	pa, #$18 wz	' get clock mode; if 0, use defaults
 
