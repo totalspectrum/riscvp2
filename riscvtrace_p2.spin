@@ -2090,6 +2090,11 @@ c_mv
 	if_nc	mov	opdata, mov_pat
 		sets	opdata, rs2
 		setd	opdata, rd
+#ifdef OPTIMIZE_CMP_ZERO
+	'	bitl	opdata, #WZ_BITNUM
+	if_c	mov	zcmp_reg, rd             ' only for add 
+	'	neg	zcmp_reg, #1
+#endif
 		mov	jit_instrptr, #opdata
 		jmp	#emit1
 
