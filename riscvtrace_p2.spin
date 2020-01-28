@@ -25,8 +25,8 @@
 '' enable automatic inlining of functions; still experimental
 #define AUTO_INLINE
 ' enable optimization of cmp with 0
-' (not working properly yet)
-#define OPTIMIZE_CMP_ZERO
+' (still potentially buggy)
+'#define OPTIMIZE_CMP_ZERO
 ' enable optimization of ptra use
 #define OPTIMIZE_PTRA
 ' use setq+rdlong
@@ -249,11 +249,6 @@ nosar
 		' and with dest being the result
 		'
 continue_imm
-#ifdef OPTIMIZE_CMP_ZERO
-		testb	opdata, #WZ_BITNUM wc
-	if_c	testbn	opdata, #WC_BITNUM wc
-	if_c	mov	zcmp_reg, rd
-#endif		
 		mov	dest, rd
 		call	#emit_mov_rd_rs1
 		jmp	#emit_big_instr
@@ -323,13 +318,8 @@ noaltr
 		sets	opdata, rs2
 		setd  	opdata, rs1
 #ifdef OPTIMIZE_CMP_ZERO
-		' beware of slt instruction pattern, which has a cmp/cmps
-		' with Z set, but which should not set zcmp_reg
-		' for this, check for WCZ and skip zcmp_reg setting
-		' if C is non-zero
 		neg	zcmp_reg, #1 wz
 		testb	opdata, #WZ_BITNUM wc
-    if_c	testbn	opdata, #WC_BITNUM wc
     if_c      	mov	zcmp_reg, rd
 #endif		
 emit_opdata
@@ -1138,6 +1128,10 @@ emit_mvi
 	if_b	neg	immval
 	if_ae	mov	opdata, mvins
 emit_big_instr
+#ifdef OPTIMIZE_CMP_ZERO
+		testb	opdata, #WZ_BITNUM wc
+	if_c	mov	zcmp_reg, dest
+#endif		
 		mov	big_temp_0+1,opdata
 		cmp	dest, #x0 wz
 	if_z	ret	' never write to x0
