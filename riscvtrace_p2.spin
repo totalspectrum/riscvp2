@@ -26,7 +26,7 @@
 #define AUTO_INLINE
 ' enable optimization of cmp with 0
 ' (still potentially buggy)
-#define OPTIMIZE_CMP_ZERO
+'#define OPTIMIZE_CMP_ZERO
 ' enable optimization of ptra use
 #define OPTIMIZE_PTRA
 ' use setq+rdlong
@@ -138,16 +138,6 @@ uart_str	long	0
 
 info2
 dis_ptr		long	0
-cycleh		long	0
-lastcnt		long	0
-chfreq		long	$80000000
-
-		'' ISR for CT3 == 0
-ct3_isr
-		addct3	lastcnt, chfreq
-		testb	lastcnt, #31 wc
-		addx	cycleh, #0
-		reti3
 		
 		
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -517,7 +507,7 @@ coginit_pattern
 getct_pat
 		getct	0-0
 getcth_pat
-		mov	0-0, cycleh
+		getct	0-0 wc
 csrvec_read_instr
 		call	#\ser_rx
 		mov	0-0, pb
@@ -820,10 +810,8 @@ debug_write_csr
 		
 millis_read_csr
 		' calculate elapsed milliseconds into pb
-		mov	dest, cycleh
+		getct	dest wc
 		getct	temp
-		cmp	dest, cycleh wz
-	if_nz	jmp	#millis_read_csr
 		' now we have a 64 bit number (dest, temp)
 		' want to divide this by (frequency/1000) to get milliseconds
 		rdlong	pb, #$14    	' get frequency
@@ -841,14 +829,6 @@ millis_write_csr
 		'''''''''''''''''''''''''''''''''''''''''
 		'' now start execution
 setup
-		'' set up interrupt for CT3 == 0
-		'' to measure cycle rollover
-		getct	lastcnt
-		and	lastcnt, chfreq
-		addct3	lastcnt, chfreq
-		mov   IJMP3, #ct3_isr
-		setint3	#3   '' ct3
-
 		''
 		'' set up CSR vectors
 		'' we should skip individual vectors if they
@@ -1413,7 +1393,7 @@ not_cog
   		setd	opdata, rd
 		jmp	#emit_opdata
 not_mcount
-		'' $c80 == cycleh (high cycle counter)
+		'' $c80 == mcounth (high cycle counter)
 		cmp	immval, #$80 wz
 	if_nz	jmp	#illegalinstr
 		mov	opdata, getcth_pat
@@ -2642,10 +2622,8 @@ syscall_exit
 		''   32 bits time_t
 		''   32 bits microseconds
 syscall_gettimeofday
-		mov	dest, cycleh
+		getct	dest wc
 		getct	x12
-		cmp	dest, cycleh wz
-	if_nz	jmp	#syscall_gettimeofday
 
 		'' now (dest, x12) is 64 bit cycle counter
 		'' convert to seconds
