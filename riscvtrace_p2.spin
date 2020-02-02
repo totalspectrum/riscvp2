@@ -26,7 +26,7 @@
 #define AUTO_INLINE
 ' enable optimization of cmp with 0
 ' (still potentially buggy)
-'#define OPTIMIZE_CMP_ZERO
+#define OPTIMIZE_CMP_ZERO
 ' enable optimization of ptra use
 #define OPTIMIZE_PTRA
 ' use setq+rdlong
@@ -208,9 +208,6 @@ notdata		not	0-0,0-0 wz
 		'' $33 is reg-reg
 
 regfunc
-#ifdef OPTIMIZE_CMP_ZERO
-		neg	zcmp_reg, #1
-#endif		
 		cmp	rd, #0	wz	' if rd == 0, emit nop
 	if_z	jmp	#hub_emit_nop
 
@@ -317,11 +314,6 @@ noaltr
 		'' now do the operation
 		sets	opdata, rs2
 		setd  	opdata, rs1
-#ifdef OPTIMIZE_CMP_ZERO
-		neg	zcmp_reg, #1 wz
-		testb	opdata, #WZ_BITNUM wc
-    if_c      	mov	zcmp_reg, rd
-#endif		
 emit_opdata
 		mov	jit_instrptr, #opdata
 		jmp	#emit1
@@ -499,9 +491,6 @@ emit_mov_rd_rs1
 	if_z	ret	    	' nothing to do if rd is rs1 already
 		sets	mov_pat,rs1
 		setd	mov_pat,rd
-#ifdef OPTIMIZE_CMP_ZERO
-		neg	zcmp_reg, #1
-#endif		
 		mov	jit_instrptr, #mov_pat
 		jmp	#emit1
 mov_pat		mov	0-0,0-0
@@ -558,7 +547,8 @@ subptra		sub	ptra, 0-0
 #endif
 
 #ifdef OPTIMIZE_CMP_ZERO
-zcmp_reg	long	-1	' register last compared to 0 as part of instruction
+zcmp_cur_reg	long	-1	' register last compared to 0 as part of instruction
+zcmp_pending_reg long	-1
 #endif
 #ifdef OPTIMIZE_PTRA
 ptra_reg	long	-1	' register contained in ptra
@@ -669,7 +659,7 @@ compile_bytecode_start_line
 		neg	ra_val, #1
 #endif
 #ifdef OPTIMIZE_CMP_ZERO
-		neg	zcmp_reg, #1
+		neg	zcmp_cur_reg, #1
 #endif		
 #ifdef OPTIMIZE_PTRA
 	_ret_	neg	ptra_reg, #1
@@ -687,6 +677,10 @@ compile_bytecode
 		cmp	rd, ra_reg wz	' did we just modify the return address?
 	if_z	neg	ra_reg, #1
 #endif
+#ifdef OPTIMIZE_CMP_ZERO
+		mov	zcmp_cur_reg, zcmp_pending_reg
+		neg	zcmp_pending_reg, #1
+#endif		
 		' fetch the actual RISC-V opcode
 		rdlong	opcode, ptrb++
 		test	opcode, #3 wcz
@@ -1017,9 +1011,6 @@ imp_div
 	_ret_	negc	rd
 
 hub_ldst_common
-#ifdef OPTIMIZE_CMP_ZERO
-		neg	zcmp_reg, #1		' assume Z reg trashed
-#endif		
 		mov	signmask, opdata	' save if we need sign mask
 		cmp	immval, #0 wz
 	if_nz	jmp	#ldst_need_offset
@@ -1105,12 +1096,8 @@ final_ldst
 		sets	opdata, dest
 do_opdata_and_sign		
 		setd	opdata, rd
-#ifdef OPTIMIZE_CMP_ZERO
-		testb	opdata, #WZ_BITNUM wc	' do we test Z in the load
-	if_c	mov	zcmp_reg, rd	   	' if so, set register
-#endif		
 		mov	jit_instrptr, #opdata
-		call	#emit1
+		call	#emit_opdata
 check_for_signext
 		shr	signmask, #9
 		and	signmask, #$1ff wz	' check for sign mask
@@ -1128,10 +1115,6 @@ emit_mvi
 	if_b	neg	immval
 	if_ae	mov	opdata, mvins
 emit_big_instr
-#ifdef OPTIMIZE_CMP_ZERO
-		testb	opdata, #WZ_BITNUM wc
-	if_c	mov	zcmp_reg, dest
-#endif		
 		mov	big_temp_0+1,opdata
 		cmp	dest, #x0 wz
 	if_z	ret	' never write to x0
@@ -1168,9 +1151,6 @@ hub_muldiv
  if_z	jmp	#handle_mul
 
 handle_plain_call
-#ifdef OPTIMIZE_CMP_ZERO
-	neg	zcmp_reg, #1	' subroutine may trash Z
-#endif	
 	sets	mul_templ, rs1
 	sets	mul_templ+1, rs2
 	mov	mul_templ+2, opdata
@@ -1226,9 +1206,6 @@ hub_jal
 #endif
 
 hub_jalr
-#ifdef OPTIMIZE_CMP_ZERO
-		neg	zcmp_reg, #1
-#endif		
 #ifdef AUTO_INLINE
 		cmp	rs1, ra_reg wz
 	if_z	tjnf	ra_val, #skip_ret
@@ -1279,8 +1256,7 @@ hub_condbranch
 #ifdef OPTIMIZE_CMP_ZERO
 		test	func3, #%100 wz
 	if_z	cmp	rs2, #0 wz
-	if_z	cmp	rs1, zcmp_reg wz
-	if_nz	neg	zcmp_reg, #1
+	if_z	cmp	rs1, zcmp_cur_reg wz
 	if_nz	call	#emit1
 #else
 		call	#emit1
@@ -1326,9 +1302,6 @@ do_illegal
 		jmp	#jit_emit_direct_branch
 
 hub_compile_fence
-#ifdef OPTIMIZE_CMP_ZERO
-		neg	zcmp_reg, #1
-#endif		
 		cmp	func3, #0 wz
 	if_z	ret			' func3 == 0 means fence; just ignore
 		cmp	func3, #1 wz	' check fence.i
@@ -1353,9 +1326,6 @@ lui_aui_common
 		'' at this point we might want to check for a coming
 		'' addi rd, rd, X
 		'' if there is one, we can fold it in with this operation
-#ifdef OPTIMIZE_CMP_ZERO
-		neg	zcmp_reg, #1
-#endif		
 		mov	dest, rd
 		rdlong	temp2, ptrb	'' peek ahead at next instruction
 		mov	temp, temp2
@@ -1374,9 +1344,6 @@ lui_aui_common
 		jmp    #emit_mvi
 		
 hub_slt_func
-#ifdef OPTIMIZE_CMP_ZERO
-		neg	zcmp_reg, #1
-#endif		
 		cmp	rd, #0	wz	' if rd == 0, emit nop
 	if_z	jmp	#\hub_emit_nop
 
@@ -1410,9 +1377,6 @@ slt_fini
 		
 
 hub_compile_csrw
-#ifdef OPTIMIZE_CMP_ZERO
-		neg	zcmp_reg, #1
-#endif		
 		getnib	func3, immval, #2
 		and	immval, #$1FF
 
@@ -1582,9 +1546,6 @@ hex_buf
 		alignl
 
 hub_pinsetinstr
-#ifdef OPTIMIZE_CMP_ZERO
-		neg	zcmp_reg, #1
-#endif		
 		'' RISC-V has store value in rs2
 		'' pin number in rs1
 		'' adjust immediate for instruction format
@@ -1649,9 +1610,6 @@ hub_pinsetinstr
 		jmp	#emit_opdata
 
 hub_wrpininstr
-#ifdef OPTIMIZE_CMP_ZERO
-		neg	zcmp_reg, #1
-#endif		
 		'' RISC-V has store value in rs2
 		'' adjust immediate for instruction format
 		andn	immval, #$1f
@@ -1680,9 +1638,6 @@ hub_wrpininstr
 		'' read pin data instructions
 		''
 hub_rdpininstr
-#ifdef OPTIMIZE_CMP_ZERO
-		neg	zcmp_reg, #1
-#endif		
 		'' upper 2 bits of immval control function
 		mov	func2, immval
 		shr	func2, #10
@@ -1714,9 +1669,6 @@ hub_rdpininstr
 		jmp	#emit_opdata
 		
 hub_coginitinstr
-#ifdef OPTIMIZE_CMP_ZERO
-		neg	zcmp_reg, #1
-#endif		
 		shr	immval, #5	' skip over rs2
 		mov	func2, immval
 		and	func2, #3 wz
@@ -1739,9 +1691,6 @@ hub_coginitinstr
 		jmp	#jit_emit
 
 hub_singledestinstr
-#ifdef OPTIMIZE_CMP_ZERO
-		neg	zcmp_reg, #1
-#endif		
 		cmp	rd, #0 wz
 	if_z	mov	rd, #temp
 		call	#emit_mov_rd_rs1
@@ -1756,9 +1705,6 @@ hub_singledestinstr
 	if_nc	jmp	#emit1
 		jmp	#emit2
 hub_stdinstr
-#ifdef OPTIMIZE_CMP_ZERO
-		neg	zcmp_reg, #1
-#endif		
 		mov	opdata, jit_cond_mask
 		shr	immval, #5
 		and	immval, #$7f
@@ -1772,9 +1718,6 @@ hub_stdinstr
 		
 		'' privileged instruction compilation code
 hub_syspriv
-#ifdef OPTIMIZE_CMP_ZERO
-		neg	zcmp_reg, #1
-#endif		
 		cmp	rd, #0 wz
 	if_nz	jmp	#illegalinstr
 		cmp	immval, #0 wz
@@ -1800,9 +1743,6 @@ compile_ecall
 		'' atomic operations
 		''
 hub_compile_atomic
-#ifdef OPTIMIZE_CMP_ZERO
-		neg	zcmp_reg, #1
-#endif		
 		cmp	func3, #2 wz	' check width
 	if_nz	jmp	#illegalinstr	' only 32 bit wide supported
 		'' calculate new func3
@@ -2019,10 +1959,6 @@ c_addi4spn
 		abs	immval	wc
 	if_nc	mov	opdata, adddata
 	if_c	mov	opdata, subdata
-#ifdef OPTIMIZE_CMP_ZERO
-		mov	zcmp_reg, rd
-		bith	opdata, #WZ_BITNUM
-#endif		
 		bith	opdata, #IMM_BITNUM
 		jmp	#continue_imm
 
@@ -2039,15 +1975,10 @@ c_addi
 		abs	immval wc
 	if_nc	mov	opdata, adddata
 	if_c	mov	opdata, subdata
-#ifdef OPTIMIZE_CMP_ZERO
-		mov	zcmp_reg, rd
-		bith	opdata, #WZ_BITNUM
-#endif		
 		bith	opdata, #IMM_BITNUM
 		setd	opdata, rd
 		sets	opdata, immval
-		mov	jit_instrptr, #opdata
-		jmp	#emit1
+		jmp	#emit_opdata
 
 c_li
 		mov	rd, opcode
@@ -2084,13 +2015,7 @@ c_mv
 	if_nc	mov	opdata, mov_pat
 		sets	opdata, rs2
 		setd	opdata, rd
-#ifdef OPTIMIZE_CMP_ZERO
-	'	bitl	opdata, #WZ_BITNUM
-	if_c	mov	zcmp_reg, rd             ' only for add 
-	'	neg	zcmp_reg, #1
-#endif
-		mov	jit_instrptr, #opdata
-		jmp	#emit1
+		jmp	#emit_opdata
 
 		' jump and/or jalr to rd
 c_jr
@@ -2165,9 +2090,6 @@ c_j
 		jmp	#jit_emit_direct_branch
 #endif		
 c_lui
-#ifdef OPTIMIZE_CMP_ZERO
-		neg	zcmp_reg, #1
-#endif		
 		mov	rd, opcode
 		shr	rd, #7
 		and	rd, #$1f wz
@@ -2206,10 +2128,6 @@ c_addi16sp
 	if_nc	mov	opdata, adddata
 	if_c	mov	opdata, subdata
 		bith	opdata, #IMM_BITNUM		
-#ifdef OPTIMIZE_CMP_ZERO
-		bith	opdata, #WZ_BITNUM
-		mov	zcmp_reg, rd
-#endif		
 		jmp	#continue_imm
 
 c_swsp
@@ -2262,9 +2180,6 @@ c_swsp
 		'' wrlong dummy+C, ptra(immval-4*N)
 		'' sub ptra, #immval-4*N
 		''
-#ifdef OPTIMIZE_CMP_ZERO
-		neg	zcmp_reg, #1
-#endif		
 		mov	ioptr, #$1ef
 		mov	func2, #0	' use func2 for extra value for setq
 		sets	mov_pat, rd
@@ -2384,9 +2299,6 @@ c_lwsp
 		' mov rd+N-1, $1e1
 		' ...
 		' mov rd, $X
-#ifdef OPTIMIZE_CMP_ZERO
-		neg	zcmp_reg, #1
-#endif		
 		mov	ioptr, #$1e0
 		mov	func2, #0	' use func2 to hold count for setq
 emit_next_lwsp_item
@@ -2495,19 +2407,11 @@ c_slli
 		and	immval, #$1f
 		mov	opdata, shldata
 		bith	opdata, #IMM_BITNUM
-#ifdef OPTIMIZE_CMP_ZERO
-		bith	opdata, #WZ_BITNUM
-		mov	zcmp_reg, rd
-#endif		
 		sets	opdata, immval
 		setd	opdata, rd
-		mov	jit_instrptr, #opdata
-		jmp	#emit1
+		jmp	#emit_opdata
 
 c_math
-#ifdef OPTIMIZE_CMP_ZERO
-		neg	zcmp_reg, #1
-#endif		
 		mov	rd, opcode
 		shr	rd, #7
 		mov	dest, rd	' selects actual function
@@ -2546,10 +2450,6 @@ c_xtra
 	if_z	mov	opdata, ordata
 		setd	opdata, rd
 		sets	opdata, rs2
-#ifdef OPTIMIZE_CMP_ZERO
-		bith	opdata, #WZ_BITNUM
-		mov	zcmp_reg, rd
-#endif		
 		mov	jit_instrptr, #opdata
 		jmp	#emit1
 	
@@ -2588,8 +2488,7 @@ c_bnez
 		sets	opdata, #x0
 		mov	jit_instrptr, #opdata
 #ifdef OPTIMIZE_CMP_ZERO
-		cmp	rs1, zcmp_reg wz
-	if_nz	mov	zcmp_reg, rs1
+		cmp	rs1, zcmp_cur_reg wz
 	if_nz	call	#emit1
 #else	
 		call	#emit1
@@ -2774,19 +2673,6 @@ syscall_clkset
 		mov	pb, x11		' second is clock frequency
 		jmp	#ser_clkset
 		
-#ifdef OPTIMIZE_CMP_ZERO
-cmp_zero_debug
-		mov	uart_num, opdata
-		call	#ser_hex
-		mov	uart_num, rd
-		call	#ser_hex
-		mov	uart_num, rs1
-		call	#ser_hex
-		mov	uart_num, rs2
-		call	#ser_hex
-		call	#ser_nl
-		jmp	#illegalinstr
-#endif		
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 '' floating point routines
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
