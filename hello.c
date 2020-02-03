@@ -1,9 +1,12 @@
 #include <stdio.h>
 #include <propeller2.h>
 
+#define TEST_SERIN
+
 //#define testfunc(i) _popcount(i)
 //#define testfunc(i) _clz(i)
 
+#ifdef TESTBLINK
 int testfunc(int i)
 {
     int basepin = 57;
@@ -16,6 +19,13 @@ int testfunc(int i)
     __asm__ __volatile__ (".insn sb CUSTOM_0, 2, x0, -0x3ff(%0)" : : "r"(basepin));
     return i;
 }
+#endif
+#ifdef TEST_SERIN
+int testfunc(int i)
+{
+    return _csr_read(_UART_CSR);
+}
+#endif
 
 void main()
 {
@@ -23,8 +33,10 @@ void main()
     int r;
     for(;;) {
         r = testfunc(i);
-        _waitx(160000000);
         printf("test(0x%x) = %x\r\n", i, r);
         i++;
+        for(int j = 0; j < 100; j++) {
+            _waitx(160000000/100);
+        }
     }
 }

@@ -1,4 +1,4 @@
-
+#define ALWAYS
 	''
 	'' serial port utility routines
 	''
@@ -60,9 +60,9 @@ ser_clkset
 		dirl	#RX_PIN
 		wrpin	##_txmode, #TX_PIN
 		wxpin	temp, #TX_PIN
-		dirh	#TX_PIN
 		wrpin	##_rxmode, #RX_PIN
 		wxpin	temp, #RX_PIN
+		dirh	#TX_PIN
 		dirh	#RX_PIN
 		ret
 		
@@ -72,19 +72,47 @@ ser_init
 	if_z	wrlong	##_DEFAULT_BAUD, #$1c	' set baud if none given
 		rdlong	pb, #$14	' get frequency
 		rdlong	pa, #$18 wz	' get clock mode; if 0, use defaults
-
+		
 	if_z	mov	pa, ##_DEFAULT_CLOCK_MODE
 	if_z	mov	pb, ##_DEFAULT_CYCLES_PER_SEC
-		jmp	#ser_clkset
+		call	#ser_clkset
+
+		rdpin	pb, #RX_PIN	wc ' clear initial rx
+		setint3	#0
+		
+		loc	pb, #@uart_isr
+		mov	IJMP3, pb
+		setse4	#%110_000000 + RX_PIN ' interrupt on high
+		'setse4	#%001_000000 + RX_PIN ' interrupt on rise
+		setint3	#7		' set interrupt 3 to SE4
+		ret
 		
 		'' receive a single character into uartchar
 		'' or set it to -1 if no character available
 ser_rx
 		neg	uart_char, #1
-		testp	#RX_PIN wc
-	if_c	rdpin	uart_char, #RX_PIN
-	if_c	shr	uart_char, #24
+		cmp	uart_head, uart_tail wz
+	if_z	ret
+
+		'' retrieve a character from uart_tail
+		rdbyte	uart_char, uart_tail
+		add	uart_tail, #1
+		cmp	uart_tail, uart_end wz
+	if_z	mov	uart_tail, uart_start
 		ret
+
+uart_isr
+		mov	isr_temp, uart_head
+		add	isr_temp, #1
+		cmp	isr_temp, uart_end wz
+	if_z	mov	isr_temp, uart_start
+
+		rdpin	uart_isr_char, #RX_PIN
+		shr	uart_isr_char, #24
+		cmp	isr_temp, uart_tail wz
+	if_nz	wrbyte	uart_isr_char, uart_head
+	if_nz	mov	uart_head, isr_temp
+		reti3
 
 		' print a single character (in uart_char)
 ser_tx
@@ -123,3 +151,7 @@ ser_nl		mov	uart_char, #13
 		call	#ser_tx
 		mov	uart_char, #10
 		jmp	#ser_tx
+
+uart_base_ptr
+		byte	0[64]
+uart_end_ptr

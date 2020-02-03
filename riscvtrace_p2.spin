@@ -139,7 +139,13 @@ uart_str	long	0
 info2
 dis_ptr		long	0
 		
-		
+uart_head	long	@uart_base_ptr
+uart_tail	long	@uart_base_ptr
+uart_start	long	@uart_base_ptr
+uart_end	long	@uart_end_ptr
+isr_temp	long	0
+uart_isr_char	long	0
+
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 ' table of compilation routines for the various opcodes
 ' the lower 20 bits is generally the address to jump to;
