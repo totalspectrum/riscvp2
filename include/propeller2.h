@@ -18,7 +18,7 @@
 #define _WAITCYC_CSR 0xBC1
 #define _DBGPRNT_CSR 0xBC2
 #define _MILLIS_CSR 0xBC3
-#define _FPU_CSR  0xBC4
+#define _UART_STATUS_CSR 0xBC4
 
 #define _CNT_CSR  0xC00
 #define _CNTH_CSR 0xC80

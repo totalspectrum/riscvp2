@@ -46,10 +46,11 @@
    Reads and writes go directly to the host HUB memory. To access COG memory
    or special registers use the CSR instructions. CSRs we know about:
       7Fx - COG registers 1F0-1FF
-      BC0 - UART register
+      BC0 - UART register (reading returns next char or -1)
       BC1 - wait register  (writing here causes us to wait until a particular cycle)
       BC2 - debug register (writing here dumps debug info to serial)
       BC3 - millisecond timer (32 bits caculated from the cycle counter)
+      BC4 - UART status register (number of pending characters)
       C00 - cycle counter
       C80 - cycle counter high
       
@@ -829,9 +830,16 @@ millis_read_csr
 		ret
 
 millis_write_csr
+uart_status_write_csr
 	_ret_	mov	pb, #0
 	
-
+uart_status_read_csr
+		mov	pb, uart_head
+		sub	pb, uart_tail
+		cmps	pb, #0 wcz
+	if_b	add	pb, #(@uart_end_ptr - @uart_base_ptr)
+		ret
+		
 		'''''''''''''''''''''''''''''''''''''''''
 		'' now start execution
 setup
@@ -862,6 +870,11 @@ setup
 		loc	pa, #\@millis_write_csr
 		call	#install_vector
 
+		loc	pa, #\@uart_status_read_csr
+		call	#install_vector
+		loc	pa, #\@uart_status_write_csr
+		call	#install_vector
+		
 		'' call the post setup hook
 		call	#post_setup_hook
 

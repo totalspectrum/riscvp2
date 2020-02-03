@@ -23,7 +23,7 @@ int testfunc(int i)
 #ifdef TEST_SERIN
 int testfunc(int i)
 {
-    return _csr_read(_UART_CSR);
+    return _csr_read(_UART_STATUS_CSR);
 }
 #endif
 
