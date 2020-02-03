@@ -152,5 +152,5 @@ ser_nl		mov	uart_char, #13
 		jmp	#ser_tx
 
 uart_base_ptr
-		byte	0[64]
+		byte	0[256]
 uart_end_ptr
