@@ -14,7 +14,7 @@ For now this is tested only on Linux machines, but I think it should work for Ma
 
 First, obtain a RISC-V toolchain. In an earlier iteration of this project I built the standard RISC-V toolchain myself from source. But I've since switched to the GNU MCU Eclipse toolchain, which comes in convenient binary form from https://github.com/gnu-mcu-eclipse/riscv-none-gcc/releases/.
 
-For my x64 Linux machine I downloaded `gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-centos64.tgz` and extracted it to a local directory. The tools are buried in a slightly funny directory structure; we could work with that, but to simplify it I elimiinated a few layers, and moved:
+For my x64 Linux machine I downloaded `gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-centos64.tgz` and extracted it to a local directory. The tools are buried in a slightly funny directory structure; we could work with that, but to simplify it I eliminated a few layers, and moved:
 ```
 ./gnu-mcu-eclipse/riscv-none-gcc/8.2.0-2.2.2-20190521-004
 ```
