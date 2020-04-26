@@ -20,4 +20,6 @@
 
 #define _clkfreq _clockfreq()
 
+#define __builtin_propeller_rev(r, n) _rev(r, n)
+
 #endif

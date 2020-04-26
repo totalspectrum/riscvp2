@@ -72,7 +72,9 @@
 #define _cnt() _csr_read(_CNT_CSR)
 #define _cnth() _csr_read(_CNTH_CSR)
 #define _waitcnt(tim) _csr_write(_WAITCYC_CSR, tim)
+#define _waitms(ms) _csr_write(_MILLIS_CSR, ms)
 
+#define _getcnt() _cnt()
 
 // NOTE:
 // CUSTOM0 opcode is 0x0b (2<<2)+3
@@ -186,6 +188,14 @@
         v;                                                  \
     })
 
+#define _akpin(pin)                                     \
+    ({                                                  \
+        unsigned long v;                                \
+        __asm__ __volatile__ (".insn s CUSTOM_0, 7, x0, -0xC00(%0)" \
+                              : : "r"(pin) );        \
+        v;                                                  \
+    })
+
 // coginit
 #define _coginit(a, b, c)                                  \
     ({                                                  \
@@ -260,6 +270,8 @@
 
 #define _clockfreq() (*(unsigned int *)0x14)
 #define _clockmode() (*(unsigned int *)0x18)
+
+#define _waitus(u) _waitx((u)/(_clockfreq()/1000000))
 
 // cordic routines
 #define _getqx()                                        \
