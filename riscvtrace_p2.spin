@@ -2525,8 +2525,9 @@ c_bnez
 #define ECALL_OPEN 1024
 #define ECALL_TIME 1062
 
+#define ECALL_CLKSET    3001
+
 #define ECALL_FPU	4000
-#define ECALL_CLKSET    4001
 
 ecall_func
 		cmp	x17, ##ECALL_CLKSET wz
