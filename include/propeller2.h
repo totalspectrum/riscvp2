@@ -191,7 +191,7 @@
 #define _akpin(pin)                                     \
     ({                                                  \
         unsigned long v;                                \
-        __asm__ __volatile__ (".insn s CUSTOM_0, 7, x0, -0xC00(%0)" \
+        __asm__ __volatile__ (".insn s CUSTOM_0, 7, x0, -0x800(%0)" \
                               : : "r"(pin) );        \
         v;                                                  \
     })
