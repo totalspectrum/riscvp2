@@ -2529,6 +2529,8 @@ c_bnez
 #define ECALL_CLKSET    4001
 
 ecall_func
+		cmp	x17, ##ECALL_CLKSET wz
+	if_z	jmp	#syscall_clkset
 		mov	x16, x17
 		sub	x16, ##ECALL_FPU wcz
 	if_ae	jmp	#syscall_fpu	
@@ -2540,8 +2542,6 @@ ecall_func
 	if_z	jmp	#syscall_gettimeofday
 		cmp	x17, #ECALL_EXIT wz
 	if_z	jmp	#syscall_exit
-		cmp	x17, ##ECALL_CLKSET wz
-	if_z	jmp	#syscall_clkset
 		neg	x10, #ENOSYS
 		ret
 syscall_write
