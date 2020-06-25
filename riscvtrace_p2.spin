@@ -2,7 +2,11 @@
 '#define USE_DISASM
 '#define DEBUG_THOROUGH
 '#define USE_LUT_CACHE
+#define NEW_HW   ' for RevB boards only
 
+'' these don't actually work, in fact we have to allocate
+'' locks from the hardware before use, we cannot just
+'' hard-code them
 #define ATOMIC_LOCK 15
 #define CACHE_LOCK  14
 
@@ -15,20 +19,19 @@
 '' to a 16 byte (4 bit) boundary
 '#define CACHE_SIZE 8192
 '#define CACHE_SIZE 32768
-#define TOTAL_SIZE 32768
-'#define TOTAL_SIZE 65536
+'#define TOTAL_SIZE 32768
+#define TOTAL_SIZE 65536
 
 '' enable a second set of tags in HUB
 #define LVL2_CACHE_TAGS lvl2_tags
 #endif
 
 '' enable automatic inlining of functions; still experimental
-#define AUTO_INLINE
-' enable optimization of cmp with 0
-' (still potentially buggy)
-'#define OPTIMIZE_CMP_ZERO
-' enable optimization of ptra use
-#define OPTIMIZE_PTRA
+'#define AUTO_INLINE
+' enable optimization of cmp with 0 (experimental)
+#define OPTIMIZE_CMP_ZERO
+' enable optimization of ptra use (experimental)
+'#define OPTIMIZE_PTRA
 ' use setq+rdlong
 #define OPTIMIZE_SETQ_RDLONG
 
