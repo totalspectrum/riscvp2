@@ -360,13 +360,13 @@ jit_loc_mask	long	$000fffff	' 20 bits
 jit_base_of_cache_mem
 		long	$200 + CACHE_TAG_SIZE
 jit_top_of_cache_mem
-		long	$400 - 8
+		long	$400 - MAX_LONGS_PER_INSTRUCTION
 #else
 
 jit_base_of_cache_mem
 		' NOTE: cache lines want to be 16 byte aligned
 		long	(@@@START_OF_CACHE + 15) & !15
 jit_top_of_cache_mem
-		long	@@@END_OF_CACHE - 32
+		long	@@@END_OF_CACHE - MAX_LONGS_PER_INSTRUCTION
 
 #endif

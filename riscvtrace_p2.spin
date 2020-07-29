@@ -19,8 +19,8 @@
 '' to a 16 byte (4 bit) boundary
 '#define CACHE_SIZE 8192
 '#define CACHE_SIZE 32768
-'#define TOTAL_SIZE 32768
-#define TOTAL_SIZE 65536
+#define TOTAL_SIZE 32768
+'#define TOTAL_SIZE 65536
 
 '' enable a second set of tags in HUB
 #define LVL2_CACHE_TAGS lvl2_tags
@@ -29,11 +29,17 @@
 '' enable automatic inlining of functions; still experimental
 '#define AUTO_INLINE
 ' enable optimization of cmp with 0 (experimental)
-#define OPTIMIZE_CMP_ZERO
+'#define OPTIMIZE_CMP_ZERO
 ' enable optimization of ptra use (experimental)
 '#define OPTIMIZE_PTRA
 ' use setq+rdlong
 #define OPTIMIZE_SETQ_RDLONG
+
+#ifdef OPTIMIZE_SETQ_RDLONG
+#define MAX_LONGS_PER_INSTRUCTION 36
+#else
+#define MAX_LONGS_PER_INSTRUCTION 8
+#endif
 
 {{
    RISC-V Emulator for Parallax Propeller
