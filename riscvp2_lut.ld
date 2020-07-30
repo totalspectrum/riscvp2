@@ -8,9 +8,9 @@ OUTPUT_FORMAT("elf32-littleriscv", "elf32-littleriscv",
 	      "elf32-littleriscv")
 OUTPUT_ARCH(riscv)
 ENTRY(_start)
-SEARCH_DIR("%LIBROOT%");
+SEARCH_DIR("=/lib");
 GROUP(-lc -lgloss)
-STARTUP("%EMULATOR%")
+STARTUP("rvp2_lut.o")
 SECTIONS
 {
   . = 0x0;

@@ -31,8 +31,7 @@ CXX=$(BINPREFIX)g++
 #
 
 P2SRCS=riscvtrace_p2.spin jit/jit_engine.spinh jit/util_serial.spin2 Double.spin2
-LDSCRIPTS_GEN=riscvp2.ld riscvp2_lut.ld
-LDSCRIPTS=$(LDSCRIPTS_GEN) fastmath.ld
+LDSCRIPTS=riscvp2.ld riscvp2_lut.ld fastmath.ld
 ASMSCRIPTS_GEN=rvp2.s rvp2_lut.s
 ASMSCRIPTS=$(ASMSCRIPTS_GEN)
 
@@ -52,13 +51,6 @@ install: $(EMUOBJS) $(LDSCRIPTS)
 	cp $(EMUOBJS) $(LDSCRIPTS) $(LIBROOT)
 	cp -r include/* $(INCLUDE)
 	rm -f *.elf *.binary
-
-# rules to build the linker scripts
-riscvp2.ld: ldscript.templ
-	sed "s^%LIBROOT%^$(LIBROOT)^g;s^%EMULATOR%^$(LIBROOT)/rvp2.o^g" < ldscript.templ > $@
-
-riscvp2_lut.ld: ldscript.templ
-	sed "s^%LIBROOT%^$(LIBROOT)^g;s^%EMULATOR%^$(LIBROOT)/rvp2_lut.o^g" < ldscript.templ > $@
 
 # rules to build the assembly stubs that add the JIT RISC-V to P2 compiler
 # at the start of binaries
@@ -102,4 +94,4 @@ hello-c++.binary: hello-c++.elf
 	$(BINPREFIX)objcopy -O binary $< $@
 
 clean:
-	rm -f *.binary *.bin *.elf *.o *.p2asm *,lst $(LDSCRIPTS_GEN) $(ASMSCRIPTS_GEN)
+	rm -f *.binary *.bin *.elf *.o *.p2asm *.lst $(ASMSCRIPTS_GEN)

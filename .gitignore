@@ -3,7 +3,5 @@
 *.bin
 *.elf
 *.binary
-riscvp2.ld
-riscvp2_lut.ld
 rvp2.s
 rvp2_lut.s
