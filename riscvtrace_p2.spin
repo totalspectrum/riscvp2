@@ -1706,7 +1706,7 @@ hub_singledestinstr
 		setd	singledest_pat, rd
 		setd	singledest_pat+1, rd
 		mov	jit_instrptr, #singledest_pat
-		testb	immval, #31 wc wc
+		testb	immval, #31 wc
 		bitc	singledest_pat, #20 ' set C bit on instruction
 	if_nc	jmp	#emit1
 		testb	immval, #30 wc

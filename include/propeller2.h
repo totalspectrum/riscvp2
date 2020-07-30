@@ -69,6 +69,47 @@
 			      : : "rK" (__v));			\
 })
 
+/*
+ * common types
+ */
+
+// cartesian coordinates
+typedef struct _cartesian {
+   int32_t x, y;
+} cartesian_t;
+
+// polar coordinates
+typedef struct _polar {
+   uint32_t r, t;
+} polar_t;
+
+// 64 bit counter
+typedef struct _counter64 {
+    uint32_t low, high;
+} counter64_t;
+
+/*
+ * P2 32 Bit Clock Mode (see macros below to construct)
+ *
+ *      0000_000e_dddddd_mmmmmmmmmm_pppp_cc_ss
+ *
+ *   e          = XPLL (0 = PLL Off, 1 = PLL On)
+ *   dddddd     = XDIV (0 .. 63, crystal divider => 1 .. 64)
+ *   mmmmmmmmmm = XMUL (0 .. 1023, crystal multiplier => 1 .. 1024)
+ *   pppp       = XPPP (0 .. 15, see macro below)
+ *   cc         = XOSC (0 = OFF, 1 = OSC, 2 = 15pF, 3 = 30pF)
+ *   ss         = XSEL (0 = rcfast, 1 = rcslow, 2 = XI, 3 = PLL)
+ */
+
+// macro to calculate XPPP (1->15, 2->0, 4->1, 6->2 ... 30->14) ...
+#define XPPP(XDIVP) ((((XDIVP)>>1)+15)&0xF)  
+
+// macro to combine XPLL, XDIV, XDIVP, XOSC & XSEL into a 32 bit CLOCKMODE ...
+#define CLOCKMODE(XPLL,XDIV,XMUL,XDIVP,XOSC,XSEL) ((XPLL<<24)+((XDIV-1)<<18)+((XMUL-1)<<8)+(XPPP(XDIVP)<<4)+(XOSC<<2)+XSEL) 
+
+// macro to calculate final clock frequency ...
+#define CLOCKFREQ(XTALFREQ, XDIV, XMUL, XDIVP) ((XTALFREQ)/(XDIV)*(XMUL)/(XDIVP))
+
 #define _cnt() _csr_read(_CNT_CSR)
 #define _cnth() _csr_read(_CNTH_CSR)
 #define _waitcnt(tim) _csr_write(_WAITCYC_CSR, tim)
@@ -197,6 +238,8 @@
     })
 
 // coginit
+#define ANY_COG 0x10
+
 #define _coginit(a, b, c)                                  \
     ({                                                  \
         unsigned long v;                                \
@@ -208,7 +251,7 @@
 // Catalina uses _cogstart_PASM instead of _coginit
 #define _cogstart_PASM(a, b, c) _coginit(a, b, c)
 
-#define _cognew(a, b) _coginit(0x10, a, b)
+#define _cognew(a, b) _coginit(ANY_COG, a, b)
 
 #define _cogid()                                     \
     ({                                                  \
@@ -218,6 +261,14 @@
         v;                                                  \
     })
 
+#define _cogchk(id)                                     \
+    ({                                                  \
+        unsigned long v;                                \
+        __asm__ __volatile__ (".insn i CUSTOM_1, 1, %0, -2048 + 1(%1)" \
+                              : "=r"(v) : "r"(id) );           \
+        (v < 0) ? v : 0;                                      \
+    })
+
 #define _cogstop(a)                                     \
     ({                                                  \
         unsigned long v;                                \
@@ -225,6 +276,38 @@
                               : "=r"(v) : "r"(a)  );    \
         v;                                                  \
     })
+
+#define _locknew()                                      \
+    ({                                                  \
+        unsigned long v;                                \
+        __asm__ __volatile__ (".insn i CUSTOM_1, 1, %0, -2048+4(%0)" \
+                              : "=r"(v)  );    \
+        v;                                                  \
+    })
+
+#define _lockret(a)                                     \
+    ({                                                  \
+        unsigned long v;                                \
+        __asm__ __volatile__ (".insn i CUSTOM_1, 1, %0, 5(%1)" \
+                              : "=r"(v) : "r"(a)  );    \
+        v;                                                  \
+    })
+
+#define _locktry(a)                                     \
+    ({                                                  \
+        unsigned long v;                                \
+        __asm__ __volatile__ (".insn i CUSTOM_1, 1, %0, -2048+6(%1)" \
+                              : "=r"(v) : "r"(a)  );    \
+        (v < 0) ? v : 0;                                \
+    })
+#define _lockrel(a)                                     \
+    ({                                                  \
+        unsigned long v;                                \
+        __asm__ __volatile__ (".insn i CUSTOM_1, 1, %0, -2048+7(%1)" \
+                              : "=r"(v) : "r"(a)  );    \
+        v;                                                  \
+    })
+
 
 #define _rnd()                                          \
     ({                                                  \
