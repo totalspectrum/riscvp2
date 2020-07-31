@@ -134,64 +134,64 @@ typedef struct _counter64 {
 #define _pinw(pin, value)                             \
     ({                                                  \
         unsigned long v = value;                         \
-        __asm__ __volatile__ (".insn sb CUSTOM_0, 2, %0, 0x000(%1)" \
+        __asm__ __volatile__ (".insn s CUSTOM_0, 2, %0, 0x000(%1)" \
                               : : "r"(v), "r"(pin) );             \
         v;                                                  \
     })
 
 #define _pinnot(pin) \
     ({                                                  \
-        __asm__ __volatile__ (".insn sb CUSTOM_0, 2, x0, -0x400(%0)" \
+        __asm__ __volatile__ (".insn s CUSTOM_0, 2, x0, -0x400(%0)" \
                               : : "r"(pin) );             \
     })
 
 #define _pinrnd(pin) \
     ({                                                  \
-        __asm__ __volatile__ (".insn sb CUSTOM_0, 2, x0, -0x800(%0)" \
+        __asm__ __volatile__ (".insn s CUSTOM_0, 2, x0, -0x800(%0)" \
                               : : "r"(pin) );             \
     })
 
 #define _pinl(pin) \
     ({                                                  \
-        __asm__ __volatile__ (".insn sb CUSTOM_0, 2, x0, 0x000(%0)" \
+        __asm__ __volatile__ (".insn s CUSTOM_0, 2, x0, 0x000(%0)" \
                               : : "r"(pin) );             \
     })
 #define _pinh(pin) \
     ({                                                  \
-        __asm__ __volatile__ (".insn sb CUSTOM_0, 2, x0, 0x400(%0)" \
+        __asm__ __volatile__ (".insn s CUSTOM_0, 2, x0, 0x400(%0)" \
                               : : "r"(pin) );             \
     })
 
 #define _fltl(pin) \
     ({                                                  \
-        __asm__ __volatile__ (".insn sb CUSTOM_0, 3, x0, 0x000(%0)" \
+        __asm__ __volatile__ (".insn s CUSTOM_0, 3, x0, 0x000(%0)" \
                               : : "r"(pin) );             \
     })
 #define _flth(pin) \
     ({                                                  \
-        __asm__ __volatile__ (".insn sb CUSTOM_0, 3, x0, 0x400(%0)" \
+        __asm__ __volatile__ (".insn s CUSTOM_0, 3, x0, 0x400(%0)" \
                               : : "r"(pin) );             \
     })
 
 #define _outl(pin) \
     ({                                                  \
-        __asm__ __volatile__ (".insn sb CUSTOM_0, 4, x0, 0x000(%0)" \
+        __asm__ __volatile__ (".insn s CUSTOM_0, 4, x0, 0x000(%0)" \
                               : : "r"(pin) );             \
     })
 #define _outh(pin) \
     ({                                                  \
-        __asm__ __volatile__ (".insn sb CUSTOM_0, 4, x0, 0x400(%0)" \
+        __asm__ __volatile__ (".insn s CUSTOM_0, 4, x0, 0x400(%0)" \
                               : : "r"(pin) );             \
     })
 
 #define _dirl(pin) \
     ({                                                  \
-        __asm__ __volatile__ (".insn sb CUSTOM_0, 5, x0, 0x000(%0)" \
+        __asm__ __volatile__ (".insn s CUSTOM_0, 5, x0, 0x000(%0)" \
                               : : "r"(pin) );             \
     })
 #define _dirh(pin) \
     ({                                                  \
-        __asm__ __volatile__ (".insn sb CUSTOM_0, 5, x0, 0x400(%0)" \
+        __asm__ __volatile__ (".insn s CUSTOM_0, 5, x0, 0x400(%0)" \
                               : : "r"(pin) );             \
     })
 
@@ -202,21 +202,21 @@ typedef struct _counter64 {
 #define _wrpin(pin, value)                              \
     ({                                                  \
         unsigned long v = value;                         \
-        __asm__ __volatile__ (".insn sb CUSTOM_0, 6, %0, 0x000(%1)" \
+        __asm__ __volatile__ (".insn s CUSTOM_0, 6, %0, 0x000(%1)" \
                               : : "r"(v), "r"(pin) );             \
         v;                                                  \
     })
 #define _wxpin(pin, value)                             \
     ({                                                  \
         unsigned long v = value;                         \
-        __asm__ __volatile__ (".insn sb CUSTOM_0, 6, %0, 0x400(%1)" \
+        __asm__ __volatile__ (".insn s CUSTOM_0, 6, %0, 0x400(%1)" \
                               : : "r"(v), "r"(pin) );             \
         v;                                                  \
     })
 #define _wypin(pin, value)                             \
     ({                                                  \
         unsigned long v = value;                         \
-        __asm__ __volatile__ (".insn sb CUSTOM_0, 6, %0, -0x800(%1)" \
+        __asm__ __volatile__ (".insn s CUSTOM_0, 6, %0, -0x800(%1)" \
                               : : "r"(v), "r"(pin) );             \
         v;                                                  \
     })

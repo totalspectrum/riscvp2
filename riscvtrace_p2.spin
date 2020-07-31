@@ -839,6 +839,15 @@ millis_read_csr
 		ret
 
 millis_write_csr
+		' wait pb milliseconds
+		rdlong temp, #$14	' get frequency
+		qdiv   temp, ##1000
+		getqx  temp		' now have freq/1000 in temp
+		qmul   pb, temp
+		getqx  pb
+		waitx  pb
+		ret
+		
 uart_status_write_csr
 	_ret_	mov	pb, #0
 	
