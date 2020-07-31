@@ -11,8 +11,8 @@ FASTSPIN=/home/ersmith/Parallax/spin2cpp/build/fastspin -q
 #TOOLROOT=/opt/riscv-std-toolchain
 #TOOLPREFIX=riscv32-unknown-elf
 
-# These are for the gnu mcu eclipse toolchain as described in README.md
-TOOLROOT=/opt/riscv-none-gcc
+# These are for the xpack toolchain as described in README.md
+TOOLROOT=/opt/riscv
 TOOLPREFIX=riscv-none-embed
 
 # these defaults should work well
