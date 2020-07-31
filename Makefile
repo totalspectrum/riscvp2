@@ -51,7 +51,7 @@ install: $(EMUOBJS) $(LDSCRIPTS)
 	cp $(EMUOBJS) $(LDSCRIPTS) $(LIBROOT)
 	cp -r include/* $(INCLUDE)
 	cp README.md $(TOOLROOT)/README_P2.md
-	cp Internals.md $(TOOLROOT)/P2_Internals.md
+	cp P2_Internals.md $(TOOLROOT)/P2_Internals.md
 	rm -f *.elf *.binary
 
 # rules to build the assembly stubs that add the JIT RISC-V to P2 compiler

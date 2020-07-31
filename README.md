@@ -1,11 +1,18 @@
 # riscvp2
 
-Convert RISC-V binaries to Parallax Propeller P2 binaries
+This project provides a way to use RISC-V tools to build Parallax Propeller P2 binaries.
 
 ## Overview
 
 This is a project that turns a RISC-V toolchain into a Propeller P2 toolchain. It's tuned for GCC right now, but in principle could be used on clang or other compilers.
 
+It works by adding a Just-In-Time (JIT) compiler from RISC-V instructions to P2 instructions to the front of the RISC-V binary. This means that we can execute the code at full speed on the P2, except that there is some latency for the initial compilation. Also, large programs which exceed the size of the instruction cache can run into slowdowns. In practice though performance seems to be good; in fact, GCC with riscvp2 outperforms all other C compilers for the P2 on many benchmarks!
+
+The JIT compiler accepts the rv32imac variant of the RISC-V instruction set, together with some P2 specific custom instructions. See `P2_Internals.md` for details.
+
+### propeller2.h
+
+The file `include/propeller2.h` defines many useful macros for the P2, for doing things like pin manipulation and timing.
 
 ## Using Binary Releases
 
@@ -52,7 +59,7 @@ It's also possible to convert the ELF file to a plain binary, which may be loade
    riscv-none-embed-objcopy -O binary hello.elf hello.binary
 ```
 
-## Building C++ Applications
+### Building C++ Applications
 
 Basically the same as building C applications, but use `riscv-none-embed-g++ -T riscvp2.ld` instead of `riscv-none-embed-gcc -T riscvp2.ld`.
 
