@@ -8,7 +8,7 @@ riscvp2 mostly emulates the RV32IMAC architecture of RISC-V. That is, it support
 
 (1) Not all of the control status registers (CSRs) required by the RISC-V standard are implemented. I've just done the most commonly used ones (see below for details)
 
-(2) The Atomic extension is not conformant. Reservations created by the `lr` instruction are only invalidated by other atomic operations such as `amoswap` and `sc`, and not by stores. This is an architectural issue; we simulate the atomics by locking/unlocking lock #15, and I didn't want to add the lock/unlock overhead around every store. In practice I think most applications relying on atomic memory access to a location will consistently use atomic operations on that location.
+(2) The Atomic extension is not conformant. Reservations created by the `lr` instruction are only invalidated by other atomic operations such as `amoswap` and `sc`, and not by stores. This is an architectural issue; we simulate the atomics by locking/unlocking lock #15, and I didn't want to add the lock/unlock overhead around every store. In practice I think most applications relying on atomic memory access to a location will consistently use atomic operations on that location. Note that the atomic instructions really aren't tested, nor are they particularly useful since multiple threads are not supported yet.
 
 ## Custom Instructions
 
@@ -30,7 +30,7 @@ Makes the pin whose value is in `rs2` an input, and reads one bit from it. The b
 
 ```
 pinw rs1, rs2
-.insn sb CUSTOM_0, 2, rs1, IMM(rs2)
+.insn s CUSTOM_0, 2, rs1, IMM(rs2)
 ```
 Makes the pin whose value is in `rs2` (adjusted by `IMM`) an output, and writes a new value to it. The new value depends on the value in `rs1` and the bits in the immediate value `IMM`, as follows:
 
@@ -45,14 +45,14 @@ A number of interesting effects can be achieved. For example, to set a pin high 
 
 Example: to create the equivalent of PASM `drvl #9` do:
 ```
-.insn sb CUSTOM_0, 2, x0, 9(x0)
+.insn s CUSTOM_0, 2, x0, 9(x0)
 ```
 
 #### DIRW
 
 ```
 dirw rs1, rs2
-.insn sb CUSTOM_0, 5, rs1, IMM(rs2)
+.insn s CUSTOM_0, 5, rs1, IMM(rs2)
 ```
 Sets the direction for the pin whose value is in `rs2` an output. Basically, this writes a bit to the DIRA or DIRB register, as appropriate, The new value depends on the value in `rs1` and the bits in the immediate value `IMM`, as follows:
 
@@ -67,7 +67,7 @@ If `IMM` is -0x800, writes a random value to the DIR register
 
 ```
 wrpin rs1, rs2
-.insn sb CUSTOM_0, 6, rs1, 0x000(rs2)
+.insn s CUSTOM_0, 6, rs1, 0x000(rs2)
 ```
 Writes `rs1` to the mode register of smart pin `rs2`, and acknowledges the smart pin.
 
@@ -75,7 +75,7 @@ Writes `rs1` to the mode register of smart pin `rs2`, and acknowledges the smart
 
 ```
 wxpin rs1, rs2
-.insn sb CUSTOM_0, 6, rs1, 0x400(rs2)
+.insn s CUSTOM_0, 6, rs1, 0x400(rs2)
 ```
 Writes `rs1` to the X register of smart pin `rs2`, and acknowledges the smart pin.
 
@@ -83,7 +83,7 @@ Writes `rs1` to the X register of smart pin `rs2`, and acknowledges the smart pi
 
 ```
 wypin rs1, rs2
-.insn sb CUSTOM_0, 6, rs1, -0x800(rs2)
+.insn s CUSTOM_0, 6, rs1, -0x800(rs2)
 ```
 Writes `rs1` to the Y register of smart pin `rs2`, and acknowledges the smart pin.
 

@@ -7,29 +7,30 @@ Convert RISC-V binaries to Parallax Propeller P2 binaries
 This is a project that turns a RISC-V toolchain into a Propeller P2 toolchain. It's tuned for GCC right now, but in principle could be used on clang or other compilers.
 
 
-## Directions
+## Using Binary Releases
 
-### Toolchain
+In the "Releases" there are some .zip files for various platforms. If you download one of these, you'll be able to use the toolchain to build applications for the P2 right away.
 
-First, obtain a RISC-V toolchain. In an earlier iteration of this project I built the standard RISC-V toolchain myself from source. But I've since switched to the xpack toolchain, which comes in convenient binary form from https://github.com.xpack-dev-tools/riscv-none-embed-gcc-xpack/releases/latest.
+### License
 
-### Linux
+Note that gcc is distributed under the GNU General Public License (see the file COPYING.GPL). In the binary distributions, I have not modified the actual GNU compiler in any way, and am merely conveying the compiled binaries I downloaded from:
 
-For my x64 Linux machine I downloaded `xpack-riscv-none-embed-gcc-8.3.0-1.2-linux-x64.tar.gz` and extracted it to /opt. For ease of use I made a symbolic link `ln -s /opt/xpack-riscv-none-embed-gcc-8.3.0-1.2 /opt/riscv`
+https://github.com/xpack-dev-tools/riscv-none-embed-gcc-xpack
 
-You can change the name to suit your taste; just edit the `TOOLROOT` definition in the Makefile.
+See that web page for directions on how to obtain source and re-build the compiler, if you wish to do so (it is not necessary for use on the P2!)
 
-### Windows
+The P2 specific modifications are under the MIT License, and source code for these are found at:
 
-For Windows I downloaded xpack-riscv-none-embed-gcc-8.3.0-1.2-win32-x64.zip.
+https://github.com/totalspectrum/riscvp2
 
-### Makefile
+No changes to GPL code are required; the P2 modifications involve adding some linker scripts and object files.
 
-Edit the Makefile so that the `FASTSPIN`, `TOOLROOT`, and `TOOLPREFIX` variables are set up for your system. The defaults for TOOLROOT and TOOLPREFIX will be fine if you used the gnu-mcu-eclipse toolchain and moved it to `/opt/riscv-none-gcc` as described above. Otherwise `TOOLROOT` should be the root directory for the toolchain, and `TOOLPREFIX` the prefix used for binaries (this may be `riscv-unknown-elf` or `riscv-none-embed`). In the end `$(TOOLROOT)/bin/$(TOOLPREFIX)-gcc` should be the path to the RISC-V gcc.
+### Installation
 
-### Installation of P2 code
+There is no GUI or installer provided; all of the tools are plain command line tools.
 
-Once you've edited the Makefile as described above, you should be able to do `make install` to copy the necessary files to the RISC-V toolchain directory.
+Unzip the downloaded file somewhere convenient (lets call it $FOO) and add $FOO/riscvp2/bin to your path. That's it!
+
 
 ## Building C Applications
 
@@ -39,6 +40,21 @@ Now you should be ready to build. To create a P2 compatible ELF file, do:
 ```
 
 The `-T riscvp2.ld` says to link for the P2. Other options are as usual for GCC.
+
+The output file will claim to be a RISC-V ELF file, but at its very beginning will be the P2 JIT compiler, which is P2 code. This may be loaded directly by `loadp2`, e.g.:
+```
+   loadp2 hello.elf -b230400 -t
+```
+Default baud rate is 230400 baud, and default clock speed is 160 MHz. These may be overridden as usual by loadp2's -f and -PATCH flags.
+
+It's also possible to convert the ELF file to a plain binary, which may be loaded by any P2 loader:
+```
+   riscv-none-embed-objcopy -O binary hello.elf hello.binary
+```
+
+## Building C++ Applications
+
+Basically the same as building C applications, but use `riscv-none-embed-g++ -T riscvp2.ld` instead of `riscv-none-embed-gcc -T riscvp2.ld`.
 
 ### Command line options
 
@@ -58,17 +74,34 @@ You may want to also pass `-specs=nano.specs`. This uses a reduced version of th
 
 This is an option to link a faster floating point library, which uses P2 primitives. The code for this is invoked (for now) via `ecall`, but eventually the plan is to support RISC-V floating point instructions natively.
 
-### Output
+## Building from Source
 
-You'll either have to use a loader that understands ELF files (e.g. the one from my p2gcc fork) or else convert the ELF file to binary:
-```
-   riscv-none-embed-objcopy -O binary hello.elf hello.binary
-```
-Now `hello.binary` may be run on the P2 eval board:
-```
-   loadp2 -SINGLE -b230400 hello.binary -t
-```
+If you prefer to build the P2 parts of the code from source, you may do this by checking out this repository and following the steps below.
 
-## Building C++ Applications
+### Download a Toolchain
 
-Basically the same as building C applications, but use `$(TOOLCHAIN)-g++` instead of `$(TOOLCHAIN)-gcc`.
+First, obtain a RISC-V toolchain. In an earlier iteration of this project I built the standard RISC-V toolchain myself from source. But I've since switched to the xpack toolchain, which comes in convenient binary form from:
+
+https://github.com.xpack-dev-tools/riscv-none-embed-gcc-xpack/releases/latest.
+
+You may also start from one of the pre-built binary releases for riscvp2.
+
+#### Linux
+
+For my x64 Linux machine I downloaded `xpack-riscv-none-embed-gcc-8.3.0-1.2-linux-x64.tar.gz` and extracted it to /opt. For ease of use I made a symbolic link `ln -s /opt/xpack-riscv-none-embed-gcc-8.3.0-1.2 /opt/riscv`
+
+You can change the name to suit your taste; just edit the `TOOLROOT` definition in the Makefile.
+
+#### Windows
+
+For Windows I downloaded xpack-riscv-none-embed-gcc-8.3.0-1.2-win32-x64.zip.
+
+
+### Edit the Makefile
+
+Edit the Makefile so that the `FASTSPIN`, `TOOLROOT`, and `TOOLPREFIX` variables are set up for your system. The defaults for TOOLROOT and TOOLPREFIX will be fine if you used the gnu-mcu-eclipse toolchain and moved it to `/opt/riscv-none-gcc` as described above. Otherwise `TOOLROOT` should be the root directory for the toolchain, and `TOOLPREFIX` the prefix used for binaries (this may be `riscv-unknown-elf` or `riscv-none-embed`). In the end `$(TOOLROOT)/bin/$(TOOLPREFIX)-gcc` should be the path to the RISC-V gcc.
+
+### Installation of P2 code
+
+Once you've edited the Makefile as described above, you should be able to do `make install` to copy the necessary files to the RISC-V toolchain directory and then be ready to build and run P2 applications as described above.
+

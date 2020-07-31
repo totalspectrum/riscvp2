@@ -50,6 +50,8 @@ EMUOBJS=rvp2.o rvp2_lut.o fastmath.o
 install: $(EMUOBJS) $(LDSCRIPTS)
 	cp $(EMUOBJS) $(LDSCRIPTS) $(LIBROOT)
 	cp -r include/* $(INCLUDE)
+	cp README.md $(TOOLROOT)/README_P2.md
+	cp Internals.md $(TOOLROOT)/P2_Internals.md
 	rm -f *.elf *.binary
 
 # rules to build the assembly stubs that add the JIT RISC-V to P2 compiler
