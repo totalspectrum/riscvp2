@@ -1,6 +1,8 @@
 #ifndef PROPELLER2_H
 #define PROPELLER2_H
 
+#include <stdint.h>
+
 #pragma once
 //
 // definitions for Control Status Registers for the P2 Risc-V platform
