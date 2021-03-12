@@ -3,8 +3,8 @@
 #
 
 # config: change these to suit your setup
-# FASTSPIN is the path to your fastspin program
-FASTSPIN=/home/ersmith/Parallax/spin2cpp/build/fastspin -q
+# FLEXSPIN is the path to your fastspin program
+FLEXSPIN=/home/ersmith/Parallax/spin2cpp/build/flexspin -q
 
 # TOOLROOT and TOOLPREFIX are for the RISC-V toolchain
 # These are for a self-built standard RISC-V toolchain in /opt/riscv-std-toolchain
@@ -74,10 +74,10 @@ rvp2_lut.o: rvp2_lut.s p2lut.bin
 
 # the actual P2 JIT code, compiled via fastspin
 p2trace.bin: $(P2SRCS)
-	$(FASTSPIN) -2 -l -o $@ riscvtrace_p2.spin
+	$(FLEXSPIN) -2 -l -o $@ riscvtrace_p2.spin
 
 p2lut.bin: $(P2SRCS)
-	$(FASTSPIN) -2 -l -DUSE_LUT_CACHE -o $@ riscvtrace_p2.spin
+	$(FLEXSPIN) -2 -l -DUSE_LUT_CACHE -o $@ riscvtrace_p2.spin
 
 
 # our demo programs
