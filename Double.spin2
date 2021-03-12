@@ -27,9 +27,9 @@ CON
 
   DBIAS_EXP	 = 1023
   DMAX_EXP	 = $7ff
-'' mask for double mantissa (high word)
+'' mask for double significand (high word)
   DMANTMASK	 = $000FFFFF
-'' mask for float mantissa
+'' mask for float significand
   FMANTMASK   	 = $007FFFFF
 
   one_4_28	 = $1000_0000
@@ -84,7 +84,9 @@ count		res	1
 		''
 		'' code to unpack a double in A, Alo
 		'' the IEEE format is 1 bit sign, 11 bit exponent,
-		'' then 52 bit mantissa
+		'' then 52 bit significand
+		'' The unpacked significand is two longs, 4.28 + 0.32
+		'' Exponent goes in Aexp, flags in Aflag
 		''
 DUnpack
 		mov	Aflag, #FLAG_DOUBLE
@@ -137,7 +139,7 @@ _Dnan
 		''
 		'' code to unpack a single precision float in A
 		'' the IEEE format is 1 bit sign, 8 bit exponent,
-		'' then 23 bit mantissa
+		'' then 23 bit significand
 		''
 FUnpack
 		mov	Alo, #0
@@ -155,8 +157,7 @@ FUnpack
 		'' now shift up to 4.28 to give head room
 		'' we start with 1.23
 		shl	A, #5
-		or	A, ##one_4_28	'' or in implied one
-		ret
+	_ret_	or	A, ##one_4_28	'' or in implied one
 
 		'' handle NaN or Infinity
 _Fnan
@@ -358,8 +359,7 @@ fpack_exp
 		add	r0, Aexp
 
 		shl	Aflag, #31
-		or	r0, Aflag
-		ret
+	_ret_	or	r0, Aflag
 
 		''
 		'' exponent is <=0, so we have to create an IEEE denormalized
@@ -383,9 +383,11 @@ fpack_excep
 	if_nz	mov	r0, ##NAN_32
 	if_nz	ret
 		test	Aflag, #FLAG_ZERO wz
-	if_nz	mov	r0, #0
-	if_nz	ret
-		jmp	#fpack_exp
+	if_z	jmp	#fpack_exp
+		' A is zero here
+		mov	r0, Aflag
+	_ret_	shl	r0, #31		' relies on FLAG_SIGN being in lowest bit!
+
 
 		''
 		'' unpack 2 floats in r0,r1 into A,B
@@ -494,14 +496,14 @@ dblprec
 
 	'' 32 bit unsigned integer to float
 UIToF
-		mov	A, r0 wz,wc
+		mov	A, r0  wcz
 		mov	Aflag, #0
 		mov	r2, #0		'' single precision
 		jmp	#doint
 
 	'' 32 bit signed integer to double
 IToD
-		abs	A, r0 wc, wz
+		abs	A, r0  wcz
 		mov	Aflag, #0
 	if_c	or	Aflag, #FLAG_SIGN
 		mov	r2, #1		'' double precision
@@ -528,8 +530,8 @@ _Add
 		cmps	Aexp, Bexp wcz
 	if_a	jmp  	#_addnoswap
 	if_b	jmp	#_addswap
-		cmp	Alo,Blo wz,wc
-		cmpx	A,B	wz,wc
+		cmp	Alo,Blo wcz
+		cmpx	A,B	wcz
 	if_ae	jmp	#_addnoswap
 _addswap
 		mov	tmp0,Aflag
@@ -700,12 +702,8 @@ _Mul
 	if_nz	or	 Aflag, #FLAG_STICKY
 	
 _mul_sign
-		mov	tmp0,Aflag
-		xor	tmp0,Bflag
-		test	tmp0,#FLAG_SIGN wz
-		muxnz	Aflag,#FLAG_SIGN
-_Mul_ret
-		ret
+		and	Bflag, #FLAG_SIGN	' adjust sign of result
+	_ret_	xor	Aflag, Bflag
 
 		'' special cases for zero, inf, NaN
 _mul_excep
@@ -841,12 +839,14 @@ _a_finite
 		'' square root calculation
 		''
 _Sqrt
-		test	Aflag, #(FLAG_INF|FLAG_NAN|FLAG_ZERO) wz
+		test	Aflag, #(FLAG_NAN|FLAG_ZERO) wz
 	if_nz	ret
 		'' sqrt(-x) -> NaN
 		test	Aflag, #(FLAG_SIGN) wz
 	if_nz	jmp	#sqrt_excep
-
+		test	Aflag, #FLAG_INF wz	' sqrt(inf) == inf
+	if_nz	ret
+	
 		mov	Alo2, #0
 		' originally our mantissa is set up with 1 <= A < 2
 		' and in 4.60 format
@@ -900,8 +900,7 @@ _Sqrt
 		
 		'' FIXME: should check here for exact squares,
 		'' for which FLAG_STICKY is not appropriate
-		or	Aflag, #FLAG_STICKY
-		ret
+	_ret_	or	Aflag, #FLAG_STICKY
 		
 sqrt_heron
 		'' have to do an iteration of Heron's algorithm to get
@@ -1056,8 +1055,7 @@ sqrt_heron
 		subx	A, #0
 		ret
 #else
-		or	Aflag, #FLAG_STICKY
-		ret
+	_ret_	or	Aflag, #FLAG_STICKY
 #endif
 sqrt_excep
 		mov	A, #0
