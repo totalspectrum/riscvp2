@@ -1651,20 +1651,29 @@ hub_wrpininstr
 		sets	opdata, dest
 		jmp	#emit_opdata
 
+rp_info
+		byte	"rdpin: ", 0
+		alignl
+		
 		''
 		'' read pin data instructions
 		''
 hub_rdpininstr
+		'' RISC-V has store value for S format in rs2, we want it in rd
+		andn	immval, #$1f
+		or	immval, rd
+		mov	rd, rs2
 		'' upper 2 bits of immval control function
-		mov	func2, immval
 		shr	func2, #10
 		and	func2, #3
 		alts	func2, #rdpin_table
 		mov	opdata, 0-0
 		and	immval, #$1ff wz
+
+		
 		'' check for nonzero pin offset
 	if_z	jmp	#.skip_imm
-		'' pin is non-zero: for now this is illegal
+		'' pin offset is non-zero: for now this is illegal
 		'' (eventually we want to add the offset to
 		'' the pin base)
 		jmp    #illegalinstr
