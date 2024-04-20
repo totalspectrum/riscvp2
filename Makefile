@@ -30,7 +30,7 @@ CXX=$(BINPREFIX)g++
 #   p2lut.bin:   compact version with cache in LUT
 #
 
-P2SRCS=riscvtrace_p2.spin jit/jit_engine.spinh jit/util_serial.spin2 Double.spin2
+P2SRCS=riscvtrace_p2.spin2 jit/jit_engine.spinh jit/util_serial.spin2 Double.spin2
 LDSCRIPTS=riscvp2.ld riscvp2_lut.ld fastmath.ld
 ASMSCRIPTS_GEN=rvp2.s rvp2_lut.s
 ASMSCRIPTS=$(ASMSCRIPTS_GEN)
@@ -74,10 +74,10 @@ rvp2_lut.o: rvp2_lut.s p2lut.bin
 
 # the actual P2 JIT code, compiled via fastspin
 p2trace.bin: $(P2SRCS)
-	$(FLEXSPIN) -2 -l -o $@ riscvtrace_p2.spin
+	$(FLEXSPIN) -2 -l -o $@ riscvtrace_p2.spin2
 
 p2lut.bin: $(P2SRCS)
-	$(FLEXSPIN) -2 -l -DUSE_LUT_CACHE -o $@ riscvtrace_p2.spin
+	$(FLEXSPIN) -2 -l -DUSE_LUT_CACHE -o $@ riscvtrace_p2.spin2
 
 
 # our demo programs
