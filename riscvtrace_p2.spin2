@@ -2705,7 +2705,7 @@ syscall_fpu
 		jmp	#@DSub
 		jmp	#@DMul
 		jmp	#@DDiv
-		jmp	#@FSqrt
+		jmp	#@FSqrtx
 		jmp	#@DSqrt
 		jmp	#@__err
 

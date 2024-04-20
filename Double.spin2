@@ -455,7 +455,7 @@ FDiv
 		call	#_DivSmall
 		jmp	#FPack
 
-FSqrt
+FSqrtx
 		mov	A, r0
 		call	#FUnpack
 		call	#_Sqrt
