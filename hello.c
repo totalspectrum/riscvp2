@@ -11,13 +11,21 @@
 int testfunc(int i)
 {
     int basepin = 57;
-    
+
+#if 1
+    // new way to do it, using macros in propeller2.h
+    _pinl(56);
+    _pinnot(57);
+    _pinnot(58);
+#else
+    // direct access to the RISC-V P2 extension instructions
     // drive pin 56 low
     __asm__ __volatile__ (".insn s CUSTOM_0, 2, x0, 56(x0)");
     // toggle pin 57
     __asm__ __volatile__ (".insn s CUSTOM_0, 2, x0, -0x400(%0)" : : "r"(basepin));
     // toggle pin 58
     __asm__ __volatile__ (".insn s CUSTOM_0, 2, x0, -0x3ff(%0)" : : "r"(basepin));
+#endif
     return i;
 }
 #endif
