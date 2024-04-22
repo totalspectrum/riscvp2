@@ -1660,9 +1660,10 @@ rp_info
 		''
 hub_rdpininstr
 		'' RISC-V has store value for S format in rs2, we want it in rd
-		andn	immval, #$1f
-		or	immval, rd
-		mov	rd, rs2
+		'' commented out, now we use I format
+		'andn	immval, #$1f
+		'or	immval, rd
+		'mov	rd, rs2
 		'' upper 2 bits of immval control function
 		shr	func2, #10
 		and	func2, #3

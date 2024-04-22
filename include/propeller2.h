@@ -127,7 +127,7 @@ typedef struct _counter64 {
 #define _pinr(pin)                                     \
     ({                                                  \
         unsigned long v;                                \
-        __asm__ __volatile__ (".insn s CUSTOM_0, 7, %0, 0(%1)" \
+        __asm__ __volatile__ (".insn i CUSTOM_0, 7, %0, 0(%1)" \
                               : "=r"(v) : "r"(pin) );        \
         v;                                                  \
     })
@@ -226,7 +226,7 @@ typedef struct _counter64 {
 #define _rdpin(pin)                                     \
     ({                                                  \
         unsigned long v;                                \
-        __asm__ __volatile__ (".insn s CUSTOM_0, 7, %0, 0x400(%1)" \
+        __asm__ __volatile__ (".insn i CUSTOM_0, 7, %0, 0x400(%1)" \
                               : "=r"(v) : "r"(pin) );        \
         v;                                                  \
     })
@@ -234,7 +234,7 @@ typedef struct _counter64 {
 #define _akpin(pin)                                     \
     ({                                                  \
         unsigned long v;                                \
-        __asm__ __volatile__ (".insn s CUSTOM_0, 7, x0, -0x800(%0)" \
+        __asm__ __volatile__ (".insn i CUSTOM_0, 7, x0, -0x800(%0)" \
                               : : "r"(pin) );        \
         v;                                                  \
     })

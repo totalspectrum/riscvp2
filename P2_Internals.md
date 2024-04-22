@@ -22,7 +22,7 @@ The assembler has not been updated to include these new instructions yet, but fo
 
 ```
 pinr rd, rs1
-.insn s CUSTOM_0, 7, rd, 0(rs2)
+.insn i CUSTOM_0, 7, rd, 0(rs2)
 ```
 Makes the pin whose value is in `rs2` an input, and reads one bit from it. The bit is stored in `rd`.
 
@@ -91,7 +91,7 @@ Writes `rs1` to the Y register of smart pin `rs2`, and acknowledges the smart pi
 
 ```
 rdpin rd, rs2
-.insn s CUSTOM_0, 7, rd, 0x400(rs2)
+.insn i CUSTOM_0, 7, rd, 0x400(rs2)
 ```
 Gets the smart pin result register Z of the pin specified by `rs2` into `rd`. Acknowledges the smart pin.
 
@@ -99,7 +99,7 @@ Gets the smart pin result register Z of the pin specified by `rs2` into `rd`. Ac
 
 ```
 rqpin rd, rs2
-.insn s CUSTOM_0, 7, rd, -0x800(rs2)
+.insn i CUSTOM_0, 7, rd, -0x800(rs2)
 ```
 Gets the smart pin result register Z of the pin specified by `rs2` into `rd`. Does not acknowledge the smart pin.
 
