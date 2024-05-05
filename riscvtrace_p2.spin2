@@ -1665,6 +1665,7 @@ hub_rdpininstr
 		'or	immval, rd
 		'mov	rd, rs2
 		'' upper 2 bits of immval control function
+		mov	func2, immval
 		shr	func2, #10
 		and	func2, #3
 		alts	func2, #rdpin_table
