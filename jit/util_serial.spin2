@@ -5,16 +5,17 @@
 	'' should do so: but beware, any XBYTE based interpreter
 	'' must save/restore the rdfast ptr if it uses HUBEXEC
 	''
-	'' we must define:
-	'' _DEFAULT_CLOCK_MODE = P2 clock setting mode (only if $18 == 0)
-	'' _DEFAULT_CYCLES_PER_SEC = P2 frequency
+	'' the top level program must define _clkfreq and _xinfreq
+	'' so that the compiler can calculate the clock mode _clkmode
+	'' however, if $14 and $18 are non-zero those are used for
+	'' clock frequency and mode (so the binary may be patched)
+	''
 	'' _DEFAULT_BAUD = baud rate to use (only if $1c == 0)
+	''
+	'' these are both set based on _clkfreq and _xtlfreq/_xinfreq
 CON
 
-_DEFAULT_CLOCK_MODE=$010007f8
-_DEFAULT_CYCLES_PER_SEC=160_000_000
-
-_DEFAULT_BAUD=230_400
+  _DEFAULT_BAUD=230_400
   RX_PIN = 63
   TX_PIN = 62
 
@@ -72,8 +73,8 @@ ser_init
 		rdlong	pb, #$14	' get frequency
 		rdlong	pa, #$18 wz	' get clock mode; if 0, use defaults
 		
-	if_z	mov	pa, ##_DEFAULT_CLOCK_MODE
-	if_z	mov	pb, ##_DEFAULT_CYCLES_PER_SEC
+	if_z	mov	pa, ##clkmode_	' default from main program
+	if_z	mov	pb, ##clkfreq_  ' default from main program
 		call	#ser_clkset
 
 		rdpin	pb, #RX_PIN	wc ' clear initial rx
