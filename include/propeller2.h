@@ -357,7 +357,6 @@ typedef struct _counter64 {
 #define _clockmode() (*(unsigned int *)0x18)
 
 #define _waitus(u) _waitx((u)*(_clockfreq()/1000000))
-#define _waitms(u) _waitx((u)*(_clockfreq()/1000))
 
 // cordic routines
 #define _getqx()                                        \

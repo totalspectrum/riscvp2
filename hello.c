@@ -43,9 +43,7 @@ void main()
     for(;;) {
         r = testfunc(i);
         printf("test(0x%x) = %x\r\n", i, r);
+        _waitms(1000);
         i++;
-        for(int j = 0; j < 100; j++) {
-            _waitx(160000000/100);
-        }
     }
 }
