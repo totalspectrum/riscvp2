@@ -839,17 +839,16 @@ millis_read_csr
 		getqx	pb		' now have freq/1000 in pb
 		setq	dest
 		qdiv	temp, pb
-		getqx	pb
-		ret
+	_ret_	getqx	pb
 
 millis_write_csr
 		' wait pb milliseconds
 		rdlong temp, #$14	' get frequency
 		qdiv   temp, ##1000
 		getqx  temp		' now have freq/1000 in temp
-		qmul   pb, temp
-		getqx  pb
-		waitx  pb
+		sub    temp, #6		' for the djnz instruction loop
+.loop		waitx  temp
+		djnz   pb, #.loop		
 		ret
 		
 uart_status_write_csr
