@@ -11,18 +11,21 @@ FLEXSPIN=/home/ersmith/Parallax/spin2cpp/build/flexspin -q
 #TOOLROOT=/opt/riscv-std-toolchain
 #TOOLPREFIX=riscv32-unknown-elf
 
+# Architecture: we support rv32imac, with the Zicsr extension
+ARCH=-march=rv32imac_zicsr
+
 # These are for the xpack toolchain as described in README.md
 TOOLROOT=/opt/riscv
-TOOLPREFIX=riscv-none-embed
+TOOLPREFIX=riscv-none-elf
 
 # these defaults should work well
 BINPREFIX=$(TOOLROOT)/bin/$(TOOLPREFIX)-
 LIBROOT=$(TOOLROOT)/$(TOOLPREFIX)/lib
 INCLUDE=$(TOOLROOT)/$(TOOLPREFIX)/include
 
-AS=$(BINPREFIX)as
-CC=$(BINPREFIX)gcc
-CXX=$(BINPREFIX)g++
+AS=$(BINPREFIX)as $(ARCH)
+CC=$(BINPREFIX)gcc $(ARCH)
+CXX=$(BINPREFIX)g++ $(ARCH)
 
 #
 # build 2 versions of the trace code:

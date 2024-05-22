@@ -22,7 +22,9 @@ In the "Releases" there are some .zip files for various platforms. If you downlo
 
 Note that gcc is distributed under the GNU General Public License (see the file COPYING.GPL). In the binary distributions, I have not modified the actual GNU compiler in any way, and am merely conveying the compiled binaries I downloaded from:
 
-https://github.com/xpack-dev-tools/riscv-none-embed-gcc-xpack
+https://github.com/xpack-dev-tools/riscv-none-elf-gcc-xpack
+
+This release has been tested with xpack-riscv-none-elf-gcc-13.2.0-2, but should work with other releases too.
 
 See that web page for directions on how to obtain source and re-build the compiler, if you wish to do so (it is not necessary for use on the P2!)
 
