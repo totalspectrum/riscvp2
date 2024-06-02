@@ -73,6 +73,7 @@ There are several linker scripts installed:
 ```
 riscvp2.ld:     uses HUB memory as cache, good for larger programs
 riscvp2_lut.ld: uses LUT memory as cache, good for smaller programs
+riscvp2_flash.ld: loads most code into flash; see HIMEM below
 ```
 
 #### -specs
@@ -82,6 +83,12 @@ You may want to also pass `-specs=nano.specs`. This uses a reduced version of th
 #### -Wl,-Tfastmath.ld
 
 This is an option to link a faster floating point library, which uses P2 primitives. The code for this is invoked (for now) via `ecall`, but eventually the plan is to support RISC-V floating point instructions natively.
+
+### Flash memory (HIMEM)
+
+If linked with `-T riscvp2_flash.ld`, most of the program's code is left in flash memory,
+to be executed in place. This option is not mature yet, and requires the latest version of
+`loadp2` (v0.074 or later) in order to load the program.
 
 ## Building from Source
 

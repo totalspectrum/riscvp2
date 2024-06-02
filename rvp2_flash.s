@@ -4,7 +4,7 @@
 	.section .jitkernel, "a"
 	.globl _interpstart
 _interpstart:	
-	.incbin "%BINFILE%"
+	.incbin "p2lut.bin"
 
 	.globl	_riscv_start
 _riscv_start:

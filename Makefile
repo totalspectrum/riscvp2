@@ -34,8 +34,8 @@ CXX=$(BINPREFIX)g++ $(ARCH)
 #
 
 P2SRCS=riscvtrace_p2.spin2 jit/jit_engine.spinh jit/util_serial.spin2 Double.spin2
-LDSCRIPTS=riscvp2.ld riscvp2_lut.ld fastmath.ld
-ASMSCRIPTS_GEN=rvp2.s rvp2_lut.s
+LDSCRIPTS=riscvp2.ld riscvp2_lut.ld riscvp2_flash.ld fastmath.ld
+ASMSCRIPTS_GEN=rvp2.s rvp2_lut.s rvp2_flash.s
 ASMSCRIPTS=$(ASMSCRIPTS_GEN)
 
 default:
@@ -48,7 +48,7 @@ default:
 #          deletes the local .elf files because the new P2 code may
 #          make them obsolete
 #
-EMUOBJS=rvp2.o rvp2_lut.o fastmath.o
+EMUOBJS=rvp2.o rvp2_lut.o rvp2_flash.o fastmath.o
 
 install: $(EMUOBJS) $(LDSCRIPTS)
 	cp $(EMUOBJS) $(LDSCRIPTS) $(LIBROOT)
@@ -66,6 +66,9 @@ rvp2.s: asm.templ p2trace.bin
 rvp2_lut.s: asm.templ p2lut.bin
 	sed "s^%BINFILE%^p2lut.bin^g" < asm.templ > $@
 
+rvp2_flash.s: asm.templ p2flash.bin
+	sed "s^%BINFILE%^p2lut.bin^g" < asm.templ > $@
+
 fastmath.o: fastmath.s
 	$(CC) -o $@ -c $<
 
@@ -75,12 +78,18 @@ rvp2.o: rvp2.s p2trace.bin
 rvp2_lut.o: rvp2_lut.s p2lut.bin
 	$(CC) -o $@ -c $<
 
-# the actual P2 JIT code, compiled via fastspin
+rvp2_flash.o: rvp2_flash.s p2flash.bin
+	$(CC) -o $@ -c $<
+
+# the actual P2 JIT code, compiled via flexspin
 p2trace.bin: $(P2SRCS)
 	$(FLEXSPIN) -2 -l -o $@ riscvtrace_p2.spin2
 
 p2lut.bin: $(P2SRCS)
 	$(FLEXSPIN) -2 -l -DUSE_LUT_CACHE -o $@ riscvtrace_p2.spin2
+
+p2flash.bin: $(P2SRCS)
+	$(FLEXSPIN) -2 -l -DFLASH_HIMEM=1 -o $@ riscvtrace_p2.spin2
 
 
 # our demo programs
