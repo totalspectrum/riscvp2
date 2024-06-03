@@ -152,7 +152,13 @@ _clkset:
 	li	x17, 3001
 	ecall
 	ret
-	
+
+	.globl	memset
+memset:
+	li	x17, 3002
+	ecall
+	ret
+
 	.data
 _heap_ptr:	
 	.long	0
