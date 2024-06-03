@@ -97,7 +97,9 @@ jit_trampoline_set_pc
 		and    jit_instr, #CACHE_TAG_SIZE-1
 		rdlut	jit_temp, jit_instr		' fetch cache data
 		mov	jit_orig_cachepc, jit_temp	' save a copy
+#ifndef FLASH_HIMEM		
 		and	jit_temp, jit_loc_mask
+#endif		
 		cmp	jit_temp, ptrb wz		' does it match our PC?
     if_nz	jmp	#cache_miss 		' if not in cache, recompile
 
@@ -298,7 +300,7 @@ jit_emit_jump_to_alt
 		and	jit_branch_alt, #$1ff
 		or	jit_mvi_jump_pat+1, jit_branch_alt
 		
-		or	jit_mvi_jump_pat+1, jit_cond_mask ' make unconditional
+		or	jit_mvi_jump_pat+2, jit_cond_mask ' make unconditional
 		mov	jit_instrptr, #jit_mvi_jump_pat
     		callpb 	#3, #jit_emit
 		jmp	jit_orig_cachepc+0
