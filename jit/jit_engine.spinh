@@ -124,11 +124,19 @@ do_cache_hit
 #ifdef USE_LUT_CACHE
 		sub	pb, #1
 		rdlut	jit_condition, pb      ' fetch original
+#ifdef FLASH_HIMEM
+		sub	pb, #2
+#else
 		sub	pb, #1	       	       ' step back to the loc instruction
+#endif
 #else
 		sub	pb, #4
 		rdlong	jit_condition, pb      ' fetch original
+#ifdef FLASH_HIMEM
+		sub	pb, #8
+#else
 		sub	pb, #4	       	       ' step back to loc instruction
+#endif
 #endif
 #ifdef DEBUG_ENGINE_ALL
 		mov	uart_char, #"^"
@@ -245,7 +253,7 @@ jit_augs_instr
 		augs	#0
 jit_mvi_jump_pat
 		mov	ptrb, ##0-0
-		calld	pb, #\jit_trampoline_set_pc
+		calld	pb, #\jit_set_pc
 #else
 jit_direct_jump_pat
 		loc	ptrb, #\0-0
