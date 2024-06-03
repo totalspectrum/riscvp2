@@ -2595,12 +2595,15 @@ c_bnez
 #define ECALL_TIME 1062
 
 #define ECALL_CLKSET    3001
+#define ECALL_MEMSET	3002
 
 #define ECALL_FPU	4000
 
 ecall_func
 		cmp	x17, ##ECALL_CLKSET wz
 	if_z	jmp	#syscall_clkset
+		cmp	x17, ##ECALL_MEMSET wz
+	if_z	jmp	#syscall_memset
 		mov	x16, x17
 		sub	x16, ##ECALL_FPU wcz
 	if_ae	jmp	#syscall_fpu	
@@ -2739,7 +2742,15 @@ syscall_clkset
 		mov	pa, x10		' first parameter is clock mode
 		mov	pb, x11		' second is clock frequency
 		jmp	#ser_clkset
-		
+
+syscall_memset
+		mov	ptra, x10	' first parameter is address
+		mov	pa, x11		' second parameter is byte
+		mov	pb, x12		' third is size
+.loop		wrbyte	pa, ptra++
+		djnz	pb, #.loop
+		ret
+
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 '' floating point routines
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
