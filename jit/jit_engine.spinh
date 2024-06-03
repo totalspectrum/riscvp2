@@ -238,9 +238,17 @@ compile_loop
 close_trace
 		jmp	#jit_emit_jump_to_ptrb
 
+#ifdef FLASH_HIMEM
+jit_augs_instr
+		augs	#0
+jit_mvi_jump_pat
+		mov	ptrb, ##0-0
+		calld	pb, #\jit_trampoline_set_pc
+#else
 jit_direct_jump_pat
 		loc	ptrb, #\0-0
 		calld	pb, #\jit_trampoline_set_pc
+#endif		
 jit_indirect_jump_pat
 		jmp	#\jit_set_pc
 		
@@ -263,6 +271,39 @@ jit_do_emit
 		' skip branch if condition is 0
 	if_z	jmp	#jit_emit_jump_to_alt
 
+#ifdef FLASH_HIMEM
+jit_direct_emit
+		mov	jit_mvi_jump_pat, jit_branch_dest
+		shr	jit_mvi_jump_pat, #9
+		or	jit_mvi_jump_pat, jit_augs_instr
+		and	jit_branch_dest, #$1ff
+		andn	jit_mvi_jump_pat+1, #$1ff
+		or	jit_mvi_jump_pat+1, jit_branch_dest
+		andn	jit_mvi_jump_pat+2, jit_cond_mask
+		or	jit_mvi_jump_pat+2, jit_condition
+		mov	jit_instrptr, #jit_mvi_jump_pat
+    		callpb 	#3, #jit_emit
+
+		' check for unconditional branch;
+		' if it is unconditional, go do it
+		cmp	jit_condition, jit_cond_mask wz
+    if_z	jmp	jit_orig_cachepc+0
+
+jit_emit_jump_to_alt
+    		'' now emit another branch to jit_branch_alt
+		mov	jit_mvi_jump_pat, jit_branch_alt
+		shr	jit_mvi_jump_pat, #9
+		or	jit_mvi_jump_pat, jit_augs_instr
+		andn	jit_mvi_jump_pat+1, #$1ff
+		and	jit_branch_alt, #$1ff
+		or	jit_mvi_jump_pat+1, jit_branch_alt
+		
+		or	jit_mvi_jump_pat+1, jit_cond_mask ' make unconditional
+		mov	jit_instrptr, #jit_mvi_jump_pat
+    		callpb 	#3, #jit_emit
+		jmp	jit_orig_cachepc+0
+
+#else
 jit_direct_emit
 		and	jit_branch_dest, jit_loc_mask
 		andn	jit_direct_jump_pat, jit_loc_mask
@@ -281,11 +322,12 @@ jit_emit_jump_to_alt
     		'' now emit another branch to jit_branch_alt
 		andn	jit_direct_jump_pat, jit_loc_mask
 		or     	jit_direct_jump_pat, jit_branch_alt
-		or	jit_direct_jump_pat+1, jit_cond_mask
+		or	jit_direct_jump_pat+1, jit_cond_mask ' make unconditional
 		mov	jit_instrptr, #jit_direct_jump_pat
     		callpb 	#2, #jit_emit
 		jmp	jit_orig_cachepc+0
-		
+#endif
+
 jit_finish_line
 #ifdef DEBUG_ENGINE_ALL
 		mov	uart_char, #"|"
@@ -357,7 +399,6 @@ jit_plain_jmp_pat
 		jmp	#\$abcd
 		
 jit_loc_mask	long	$000fffff	' 20 bits
-
 #ifdef USE_LUT_CACHE
 jit_base_of_cache_mem
 		long	$200 + CACHE_TAG_SIZE
