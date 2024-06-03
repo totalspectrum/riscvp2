@@ -67,7 +67,7 @@ rvp2_lut.s: asm.templ p2lut.bin
 	sed "s^%BINFILE%^p2lut.bin^g" < asm.templ > $@
 
 rvp2_flash.s: asm.templ p2flash.bin
-	sed "s^%BINFILE%^p2lut.bin^g" < asm.templ > $@
+	sed "s^%BINFILE%^p2flash.bin^g" < asm.templ > $@
 
 fastmath.o: fastmath.s
 	$(CC) -o $@ -c $<

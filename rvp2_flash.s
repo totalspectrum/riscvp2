@@ -4,8 +4,7 @@
 	.section .jitkernel, "a"
 	.globl _interpstart
 _interpstart:	
-	.incbin "p2lut.bin"
-	.balign 4
+	.incbin "p2flash.bin"
 
 	.globl	_riscv_start
 _riscv_start:

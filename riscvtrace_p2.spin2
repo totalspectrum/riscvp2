@@ -450,7 +450,9 @@ LUI_MASK	long	$fffff000
 Jmask		long	$fff00fff
 
 imp_jalr
+#ifndef FLASH_HIMEM
 		loc	ptrb, #\(0-0)
+#endif		
 		add	ptrb, 0-0
 imp_jalr_nooff
 		mov	ptrb, 0-0
@@ -1246,18 +1248,30 @@ hub_jalr
 	if_z	tjnf	ra_val, #skip_ret
 #endif
 		' set up offset in ptrb
+#ifdef FLASH_HIMEM
+		cmp	immval, #0 wz
+#else		
 		and	immval, jit_loc_mask wz
+#endif		
 	if_nz	jmp	#.need_offset
 		sets	imp_jalr_nooff, rs1
 		mov	jit_instrptr, #imp_jalr_nooff
 		call	#emit1
 		jmp	#.load_retaddr
 .need_offset
+#ifdef FLASH_HIMEM
+		mov	dest, #ptrb-0
+		call	#emit_mvi
+		sets	imp_jalr, rs1
+		mov	jit_instrptr, #imp_jalr
+		call	#emit1
+#else
 		andn	imp_jalr, jit_loc_mask
 		or	imp_jalr, immval
 		sets	imp_jalr+1, rs1
 		mov	jit_instrptr, #imp_jalr
 		call	#emit2
+#endif		
 .load_retaddr
 		' now emit the final load
 		mov	immval, ptrb	' get return address

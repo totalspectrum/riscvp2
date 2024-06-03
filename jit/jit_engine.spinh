@@ -79,7 +79,9 @@ jit_set_pc
 		mov	pb, #0		' source for dest is unknown
 	
 jit_trampoline_set_pc
+#ifndef FLASH_HIMEM
 		and	ptrb, jit_loc_mask	' sanitize address
+#endif		
 #ifdef USE_DISASM
 		call	#hub_print_newpc
 #endif
