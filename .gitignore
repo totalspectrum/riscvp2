@@ -2,6 +2,7 @@
 *.o
 *.bin
 *.elf
+*.lst
 *.binary
 rvp2.s
 rvp2_lut.s
