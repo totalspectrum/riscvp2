@@ -5,11 +5,13 @@
 	.globl _interpstart
 _interpstart:	
 	.incbin "%BINFILE%"
+	.balign 4
 
 	.globl	_riscv_start
 _riscv_start:
 	la	x1, _start
 	jr	x1
+	.balign 4
 
 	.text
 	.globl _sbrk
