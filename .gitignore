@@ -5,3 +5,4 @@
 *.binary
 rvp2.s
 rvp2_lut.s
+rvp2_flash.s
