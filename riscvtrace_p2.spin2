@@ -690,9 +690,16 @@ compile_bytecode
 #ifdef OPTIMIZE_CMP_ZERO
 		mov	zcmp_cur_reg, zcmp_pending_reg
 		neg	zcmp_pending_reg, #1
-#endif		
+#endif
+#ifdef FLASH_HIMEM
+		mov	opcode, ptrb wcz
+		add	ptrb, #4
+	if_c	call	#translate_flash_address
+		rdlong	opcode, opcode
+#else
 		' fetch the actual RISC-V opcode
 		rdlong	opcode, ptrb++
+#endif		
 		test	opcode, #3 wcz
   if_z_or_c	jmp	#hub_compressed_instr		' low bits must both be 3; otherwise a 16 bit instruction
   
@@ -864,6 +871,10 @@ uart_status_read_csr
 		'''''''''''''''''''''''''''''''''''''''''
 		'' now start execution
 setup
+#ifdef FLASH_HIMEM
+		'' initialize flash memory reads
+		call	#flash_init
+#endif
 		''
 		'' set up CSR vectors
 		'' we should skip individual vectors if they
@@ -924,6 +935,10 @@ post_setup_vec
 
 #ifdef DEBUG_ENGINE
 #include "jit/util_disasm.spin2"
+#endif
+
+#ifdef FLASH_HIMEM
+#include "jit/util_flash.spin2"
 #endif
 
 '=========================================================================
@@ -2731,6 +2746,11 @@ __err
 '' cache memory
 		orgh
 		alignl
+#ifdef FLASH_HIMEM
+flash_tags	long	0
+flash_cache
+		byte	0[256]
+#endif
 #ifdef LVL2_CACHE_TAGS
 lvl2_tags
 		long	0[CACHE_TAG_SIZE]

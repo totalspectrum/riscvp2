@@ -1,6 +1,6 @@
 {{
    JIT engine for P2
-   Copyright 2019 Total Spectrum Software Inc.
+   Copyright 2019-2024 Total Spectrum Software Inc.
    MIT Licensed, see JIT.md for details.
 
    The main entry point is jit_set_pc, which is given
