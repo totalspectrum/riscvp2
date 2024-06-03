@@ -54,7 +54,7 @@ translate_flash_address
 	loc	pa, #flash_tags
 	loc	ptra, #flash_cache
 	' see if it's already in the cache
-	mov	temp, ##$00_FF_FFFF
+	mov	temp, ##$00_FF_FF00
 	and	temp, opcode
 	rdlong	temp2, pa
 	cmp	temp, temp2 wz
@@ -65,11 +65,19 @@ flash_cache_hit
 
 flash_cache_miss
 	wrlong	temp, pa	' update flash tag
-
+#ifdef DEBUG_ENGINE
+	mov	uart_char, #"*"
+	call	#ser_tx
+	mov	uart_num, temp
+	call	#ser_hex
+	call	#ser_nl
+#endif	
 	' read a page of data from temp (in flash) to ptra (in HUB)
 	call	#Spi_Init
 	mov	cmd, #Read_Data
 	mov	adr, temp
+	call	#Spi_Cmd32		' start read
+
 	mov	temp2, #256  ' size of data to read
 .loop
         wxpin   #7 | 1<<5, #spi_do             ' 8 bits, with hold time (post-clock sampling)
@@ -86,6 +94,24 @@ flash_cache_miss
 
 	' done reading
 	drvh	#spi_cs
+	sub	ptra, #256	' move ptra back to cache start
+#ifdef DEBUG_ENGINE
+	mov	uart_char, #"$"
+	call	#ser_tx
+	mov	uart_char, #"$"
+	call	#ser_tx
+	call	#ser_nl
+	mov	temp2, #4
+.prtlp
+	mov	uart_num, ptra
+	call	#ser_hex
+	rdlong	uart_num, ptra++
+	call	#ser_hex
+	call	#ser_nl
+	djnz	temp2, #.prtlp
+	sub	ptra, #16
+	call	#ser_nl
+#endif	
 	jmp	#flash_cache_hit
 
 '' initialize SPI for flash

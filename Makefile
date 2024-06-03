@@ -33,7 +33,7 @@ CXX=$(BINPREFIX)g++ $(ARCH)
 #   p2lut.bin:   compact version with cache in LUT
 #
 
-P2SRCS=riscvtrace_p2.spin2 jit/jit_engine.spinh jit/util_serial.spin2 Double.spin2
+P2SRCS=riscvtrace_p2.spin2 jit/jit_engine.spinh jit/util_serial.spin2 Double.spin2 jit/util_flash.spin2
 LDSCRIPTS=riscvp2.ld riscvp2_lut.ld riscvp2_flash.ld fastmath.ld
 ASMSCRIPTS_GEN=rvp2.s rvp2_lut.s rvp2_flash.s
 ASMSCRIPTS=$(ASMSCRIPTS_GEN)

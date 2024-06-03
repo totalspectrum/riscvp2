@@ -2,8 +2,8 @@ CON
   _clkfreq = 252_000_000  ' clock frequency to use: 252 MHz is good for HDMI
   _xinfreq = 20_000_000   ' default for most Parallax boards
 
-'#define DEBUG_ENGINE
-'#define USE_DISASM
+#define DEBUG_ENGINE
+#define USE_DISASM
 '#define DEBUG_THOROUGH
 '#define USE_LUT_CACHE
 #define NEW_HW   ' for RevB boards only
@@ -472,6 +472,13 @@ imp_jalr_nooff
 '' then we use the JIT engine to emit a conditional branch to "newpc"
 ''
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+#ifdef FLASH_HIMEM
+emit_pc_immval_minus_4
+		sub	immval, #4
+emit_pc_immval
+		mov	dest, #ptrb
+		jmp	#emit_mvi
+#else
 loc_instr	loc	ptrb, #\0
 
 emit_pc_immval_minus_4
@@ -482,6 +489,7 @@ emit_pc_immval
 		or	loc_instr, immval
 		mov	jit_instrptr, #loc_instr
 		jmp	#emit1
+#endif
 
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 ' helper routines for compilation
