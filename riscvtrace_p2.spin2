@@ -1231,8 +1231,22 @@ hub_jal
 		mov	ra_val, ptrb
 		mov	rd, #0
 #endif	
+#ifdef DEBUG_ENGINE
+		mov	uart_char, #"<"
+		call	#ser_tx
+		mov	uart_num, immval
+		call	#ser_hex
+		call	#ser_nl
+#endif
 		mov	immval, opcode
 		sar	immval, #20	' sign extend, get some bits in place
+#ifdef DEBUG_ENGINE
+		mov	uart_char, #">"
+		call	#ser_tx
+		mov	uart_num, immval
+		call	#ser_hex
+		call	#ser_nl
+#endif
 		and	immval, Jmask
 		test	immval, #1 wc	' check old bit 20
 		mov	temp, opcode
@@ -1247,6 +1261,13 @@ hub_jal
 		add	immval, ptrb	' calculate branch target
 		mov	jit_condition, #$F	    ' unconditional jump
 		sub	immval, #4     	' adjust for PC offset
+#ifdef DEBUG_ENGINE
+		mov	uart_char, #">"
+		call	#ser_tx
+		mov	uart_num, immval
+		call	#ser_hex
+		call	#ser_nl
+#endif
 		jmp	#issue_branch_cond
 #endif
 
@@ -2782,7 +2803,9 @@ __err
 #ifdef FLASH_HIMEM
 flash_tags	long	0
 flash_cache
-		byte	0[256]
+		'' important: we have to read an extra 2 bytes in case
+		'' a 4 byte instruction straddles a page boundary
+		byte	0[264]
 #endif
 #ifdef LVL2_CACHE_TAGS
 lvl2_tags

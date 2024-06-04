@@ -73,12 +73,15 @@ flash_cache_miss
 	call	#ser_nl
 #endif	
 	' read a page of data from temp (in flash) to ptra (in HUB)
+	' NOTE: we actually have to read a bit more than a page, because
+	' 4 byte instructions may straddle a page boundary if mixed with
+	' 2 byte compressed instructions
 	call	#Spi_Init
 	mov	cmd, #Read_Data
 	mov	adr, temp
 	call	#Spi_Cmd32		' start read
 
-	mov	temp2, #256  ' size of data to read
+	mov	temp2, #264  		' size of data to read (256 + 4 + 4)
 .loop
         wxpin   #7 | 1<<5, #spi_do             ' 8 bits, with hold time (post-clock sampling)
         wypin   #16,#spi_ck                    ' start 16 clock transitions
@@ -94,7 +97,7 @@ flash_cache_miss
 
 	' done reading
 	drvh	#spi_cs
-	sub	ptra, #256	' move ptra back to cache start
+	sub	ptra, #264	' move ptra back to cache start
 #ifdef DEBUG_ENGINE
 	mov	uart_char, #"$"
 	call	#ser_tx

@@ -253,7 +253,7 @@ jit_augs_instr
 		augs	#0
 jit_mvi_jump_pat
 		mov	ptrb, ##0-0
-		calld	pb, #\jit_set_pc
+		calld	pb, #\jit_trampoline_set_pc
 #else
 jit_direct_jump_pat
 		loc	ptrb, #\0-0
