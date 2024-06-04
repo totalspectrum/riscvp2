@@ -37,7 +37,7 @@ con
 dat
 	orgh
 	' initialize the flash read code
-flash_init
+himem_init
 	call	#Spi_Init
 	mov	cmd, #PD_Release
 	call	#Spi_Cmd8
@@ -49,20 +49,32 @@ flash_init
 	call	#Spi_Cmd8
 	jmp	#Spi_Wait
 
-	' translate the address in "opcode" into a hub address
-translate_flash_address
+	' translate the address in "himem_addr" into a hub address
+translate_himem_address
 	loc	pa, #flash_tags
 	loc	ptra, #flash_cache
 	' see if it's already in the cache
 	mov	temp, ##$00_FF_FF00
-	and	temp, opcode
+	and	temp, himem_addr
 	rdlong	temp2, pa
 	cmp	temp, temp2 wz
  if_nz	jmp	#flash_cache_miss
 flash_cache_hit
-	and	opcode, #$ff
- _ret_	add	opcode, ptra	' add flash cache offset
-
+	and	himem_addr, #$ff
+	add	himem_addr, ptra	' add flash cache offset
+#ifdef DEBUG_ENGINE_ALL
+	mov	uart_char, #"@"
+	call	#ser_tx
+	mov	uart_num, himem_addr
+	call	#ser_hex
+	mov	uart_char, #"i"
+	call	#ser_tx
+	rdlong	uart_num, himem_addr
+	call	#ser_hex
+	call	#ser_nl
+#endif	
+ 	ret
+	
 flash_cache_miss
 	wrlong	temp, pa	' update flash tag
 #ifdef DEBUG_ENGINE
@@ -104,17 +116,21 @@ flash_cache_miss
 	mov	uart_char, #"$"
 	call	#ser_tx
 	call	#ser_nl
-	mov	temp2, #4
-.prtlp
+	mov	dis_temp2, #256/32
+.outrlp
 	mov	uart_num, ptra
 	call	#ser_hex
+	mov	dis_temp1, #32/4
+.innrlp
 	rdlong	uart_num, ptra++
 	call	#ser_hex
+	djnz	dis_temp1, #.innrlp
 	call	#ser_nl
-	djnz	temp2, #.prtlp
-	sub	ptra, #16
+	
+	djnz	dis_temp2, #.outrlp
+	sub	ptra, #256
 	call	#ser_nl
-#endif	
+#endif
 	jmp	#flash_cache_hit
 
 '' initialize SPI for flash

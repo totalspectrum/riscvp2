@@ -79,8 +79,14 @@ jit_set_pc
 		mov	pb, #0		' source for dest is unknown
 	
 jit_trampoline_set_pc
-#ifndef FLASH_HIMEM
+#ifdef USE_HIMEM
+		mov	cache_ptrb, ptrb wc
+		bitc	cache_ptrb, #19		' set bit 19 based on himem bit (FIXME HACK to deal with cache having only 20 bit addresses)
+		and	cache_ptrb, jit_loc_mask
+		mov    jit_instr, cache_ptrb
+#else
 		and	ptrb, jit_loc_mask	' sanitize address
+		mov    jit_instr, ptrb
 #endif		
 #ifdef USE_DISASM
 		call	#hub_print_newpc
@@ -90,17 +96,19 @@ jit_trampoline_set_pc
 		'' bits of the PC in ptrb are
 		'' significant. If you know that ptrb is aligned differently,
 		'' you should shift and mask
-		mov    jit_instr, ptrb
 #ifdef CACHE_IGNORE_BITS		
 		shr    jit_instr, #CACHE_IGNORE_BITS			' divide by cache tag size
 #endif		
 		and    jit_instr, #CACHE_TAG_SIZE-1
 		rdlut	jit_temp, jit_instr		' fetch cache data
 		mov	jit_orig_cachepc, jit_temp	' save a copy
-#ifndef FLASH_HIMEM		
 		and	jit_temp, jit_loc_mask
-#endif		
+
+#ifdef USE_HIMEM
+		cmp	jit_temp, cache_ptrb wz		' does it match our PC?
+#else
 		cmp	jit_temp, ptrb wz		' does it match our PC?
+#endif		
     if_nz	jmp	#cache_miss 		' if not in cache, recompile
 
 do_cache_hit
@@ -124,21 +132,22 @@ do_cache_hit
 #ifdef USE_LUT_CACHE
 		sub	pb, #1
 		rdlut	jit_condition, pb      ' fetch original
-#ifdef FLASH_HIMEM
-		sub	pb, #2
+#ifdef USE_HIMEM
+		sub	pb, #2                 ' step back to the augs/mov combo
 #else
 		sub	pb, #1	       	       ' step back to the loc instruction
 #endif
 #else
 		sub	pb, #4
 		rdlong	jit_condition, pb      ' fetch original
-#ifdef FLASH_HIMEM
+#ifdef USE_HIMEM
 		sub	pb, #8
 #else
 		sub	pb, #4	       	       ' step back to loc instruction
 #endif
 #endif
-#ifdef DEBUG_ENGINE_ALL
+#ifdef DEBUG_ENGINE
+		call	#ser_nl
 		mov	uart_char, #"^"
 		call	#ser_tx
 		mov	uart_num, jit_condition
@@ -155,11 +164,22 @@ do_cache_hit
 		wrlut	jit_instr, pb
 #else
 		wrlong 	jit_instr, pb
-#endif		
-#ifdef DEBUG_ENGINE_ALL
+#endif
+#ifdef USE_HIMEM
+#ifdef USE_LUT_CACHE
+		add	pb, #1
+		wrlut	#0, pb
+#else
+		add	pb, #4
+		wrlong	#0, pb
+#endif
+#endif
+#ifdef DEBUG_ENGINE
 		mov	uart_char, #"^"
 		call	#ser_tx
 		mov	uart_num, pb
+		call	#ser_hex
+		mov	uart_num, jit_orig_cachepc
 		call	#ser_hex
 		call	#ser_nl
 #ifdef USE_DISASM
@@ -182,8 +202,11 @@ cache_miss
 		rdlong	jit_temp, temp2
 		mov	temp, jit_temp
 		and	temp, jit_loc_mask
-		
+#ifdef USE_HIMEM
+		cmp	temp, cache_ptrb wz
+#else
 		cmp	temp, ptrb wz
+#endif		
 	if_nz	jmp	#real_cache_miss
 	
 		' swap the tags in RAM and LUT
@@ -222,7 +245,11 @@ real_cache_miss
 		mov	jit_temp, jit_orig_cachepc
 		sub	jit_temp, jit_base_of_cache_mem
 		shl	jit_temp, #(20-CACHE_OFFSET_SHIFT)
+#ifdef USE_HIMEM
+		or	jit_temp, cache_ptrb
+#else		
 		or	jit_temp, ptrb
+#endif		
     		wrlut	jit_temp, jit_instr		' update cached pc
 
 compile_line
@@ -248,12 +275,12 @@ compile_loop
 close_trace
 		jmp	#jit_emit_jump_to_ptrb
 
-#ifdef FLASH_HIMEM
+#ifdef USE_HIMEM
 jit_augs_instr
 		augs	#0
 jit_mvi_jump_pat
 		mov	ptrb, ##0-0
-		calld	pb, #\jit_trampoline_set_pc
+		calld	pb, #\jit_trampoline_set_pc  ' FIXME: should trampoline
 #else
 jit_direct_jump_pat
 		loc	ptrb, #\0-0
@@ -281,7 +308,7 @@ jit_do_emit
 		' skip branch if condition is 0
 	if_z	jmp	#jit_emit_jump_to_alt
 
-#ifdef FLASH_HIMEM
+#ifdef USE_HIMEM
 jit_direct_emit
 		mov	jit_mvi_jump_pat, jit_branch_dest
 		shr	jit_mvi_jump_pat, #9

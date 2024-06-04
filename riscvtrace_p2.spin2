@@ -2,6 +2,11 @@ CON
   _clkfreq = 252_000_000  ' clock frequency to use: 252 MHz is good for HDMI
   _xinfreq = 20_000_000   ' default for most Parallax boards
 
+
+#ifdef FLASH_HIMEM
+#define USE_HIMEM
+#endif
+
 '#define DEBUG_ENGINE
 '#define USE_DISASM
 '#define DEBUG_THOROUGH
@@ -36,8 +41,11 @@ CON
 '#define OPTIMIZE_CMP_ZERO
 ' enable optimization of ptra use (experimental)
 '#define OPTIMIZE_PTRA
-' use setq+rdlong
+
+#ifndef USE_HIMEM
+' use setq+rdlong; constructing this is problematic in HIMEM
 #define OPTIMIZE_SETQ_RDLONG
+#endif
 
 #ifdef OPTIMIZE_SETQ_RDLONG
 #define MAX_LONGS_PER_INSTRUCTION 36
@@ -450,7 +458,7 @@ LUI_MASK	long	$fffff000
 Jmask		long	$fff00fff
 
 imp_jalr
-#ifndef FLASH_HIMEM
+#ifndef USE_HIMEM
 		loc	ptrb, #\(0-0)
 #endif		
 		add	ptrb, 0-0
@@ -472,7 +480,7 @@ imp_jalr_nooff
 '' then we use the JIT engine to emit a conditional branch to "newpc"
 ''
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-#ifdef FLASH_HIMEM
+#ifdef USE_HIMEM
 emit_pc_immval_minus_4
 		sub	immval, #4
 emit_pc_immval
@@ -701,11 +709,12 @@ compile_bytecode
 		mov	zcmp_cur_reg, zcmp_pending_reg
 		neg	zcmp_pending_reg, #1
 #endif
-#ifdef FLASH_HIMEM
-		mov	opcode, ptrb wcz
+#ifdef USE_HIMEM
+		mov	himem_addr, ptrb wcz
 		add	ptrb, #4
-	if_c	call	#translate_flash_address
-		rdlong	opcode, opcode
+	if_c	call	#translate_himem_address
+		rdlong	opcode, himem_addr
+		add	himem_addr, #4
 #else
 		' fetch the actual RISC-V opcode
 		rdlong	opcode, ptrb++
@@ -770,13 +779,13 @@ imp_mul
 	_ret_	add	rd, rs1
 #endif
 
-		fit	$1d0
+		fit	$1d8
 
-' reserved for float use
-  	 	org	$1d0
-float_reserved
-		res	16
-		
+#ifdef USE_HIMEM
+himem_addr	res	1
+cache_ptrb	res	1
+' a bit of extra space here
+#endif		
 		org	$1e0
 		' scratch registers needed only for the
 		' compiler; these may be overwritten at run time
@@ -881,9 +890,9 @@ uart_status_read_csr
 		'''''''''''''''''''''''''''''''''''''''''
 		'' now start execution
 setup
-#ifdef FLASH_HIMEM
+#ifdef USE_HIMEM
 		'' initialize flash memory reads
-		call	#flash_init
+		call	#himem_init
 #endif
 		''
 		'' set up CSR vectors
@@ -1277,7 +1286,7 @@ hub_jalr
 	if_z	tjnf	ra_val, #skip_ret
 #endif
 		' set up offset in ptrb
-#ifdef FLASH_HIMEM
+#ifdef USE_HIMEM
 		cmp	immval, #0 wz
 #else		
 		and	immval, jit_loc_mask wz
@@ -1288,7 +1297,7 @@ hub_jalr
 		call	#emit1
 		jmp	#.load_retaddr
 .need_offset
-#ifdef FLASH_HIMEM
+#ifdef USE_HIMEM
 		mov	dest, #ptrb-0
 		call	#emit_mvi
 		sets	imp_jalr, rs1
@@ -1405,6 +1414,7 @@ lui_aui_common
 		'' addi rd, rd, X
 		'' if there is one, we can fold it in with this operation
 		mov	dest, rd
+#ifndef USE_HIMEM		
 		rdlong	temp2, ptrb	'' peek ahead at next instruction
 		mov	temp, temp2
 		and	temp, ##$fff00000	' extract immediate
@@ -1419,6 +1429,7 @@ lui_aui_common
 		add    ptrb, #4
 		sar    temp, #20
 		add    immval, temp
+#endif		
 		jmp    #emit_mvi
 		
 hub_slt_func
@@ -2803,8 +2814,9 @@ __err
 #ifdef FLASH_HIMEM
 flash_tags	long	0
 flash_cache
-		'' important: we have to read an extra 2 bytes in case
+		'' important: we have to read extra bytes in case
 		'' a 4 byte instruction straddles a page boundary
+		'' also, we may want to peek ahead, so > 6 extra bytes
 		byte	0[264]
 #endif
 #ifdef LVL2_CACHE_TAGS

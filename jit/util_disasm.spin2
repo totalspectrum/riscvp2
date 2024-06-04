@@ -20,6 +20,9 @@
 #define PRINT_LONG_JMP 0x7
 
 disassemble_multi
+		mov	uart_num, jit_cachepc
+		call	#ser_hex
+		call	#ser_nl
 		mov	pb_copy, pb
 		mov	tmp_ptr, jit_instrptr
 emit_dis_loop
