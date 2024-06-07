@@ -26,9 +26,12 @@ CON
 '' NOTE: if you want to increase cache to more than 64K you will have to
 '' modify the alignment; we only have 12 bits for cache offset, and align
 '' to a 16 byte (4 bit) boundary
+' WARNING: although 64K cache should theoretically work, in practice there
+' seems to be an issue with caches over 32K in size
+
 '#define CACHE_SIZE 8192
-'#define CACHE_SIZE 32768
-#define TOTAL_SIZE 32768
+#define CACHE_SIZE 32768
+'#define TOTAL_SIZE 32768
 '#define TOTAL_SIZE 65536
 
 '' enable a second set of tags in HUB
@@ -784,6 +787,10 @@ imp_mul
 #ifdef USE_HIMEM
 himem_addr	res	1
 cache_ptrb	res	1
+himem_tag_1	res	1
+himem_tag_2	res	1
+himem_tagaddr_1	res	1
+himem_tagaddr_2	res	1
 ' a bit of extra space here
 #endif		
 		org	$1e0
@@ -892,6 +899,10 @@ uart_status_read_csr
 setup
 #ifdef USE_HIMEM
 		'' initialize flash memory reads
+		neg	himem_tag_1, #1	   ' invalid tag
+		neg	himem_tag_2, #1
+		mov	himem_tagaddr_1, ##flash_cache_1
+		mov	himem_tagaddr_2, ##flash_cache_2
 		call	#himem_init
 #endif
 		''
@@ -2812,11 +2823,12 @@ __err
 		orgh
 		alignl
 #ifdef FLASH_HIMEM
-flash_tags	long	0
-flash_cache
+flash_cache_1
 		'' important: we have to read extra bytes in case
 		'' a 4 byte instruction straddles a page boundary
 		'' also, we may want to peek ahead, so > 6 extra bytes
+		byte	0[264]
+flash_cache_2
 		byte	0[264]
 #endif
 #ifdef LVL2_CACHE_TAGS

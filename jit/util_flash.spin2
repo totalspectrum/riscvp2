@@ -51,14 +51,22 @@ himem_init
 
 	' translate the address in "himem_addr" into a hub address
 translate_himem_address
-	loc	pa, #flash_tags
-	loc	ptra, #flash_cache
-	' see if it's already in the cache
+	' see if address is already in the cache
 	mov	temp, ##$00_FF_FF00
 	and	temp, himem_addr
-	rdlong	temp2, pa
-	cmp	temp, temp2 wz
+	mov	ptra, himem_tagaddr_1
+	cmp	temp, himem_tag_1 wz
+ if_z	jmp	#flash_cache_hit
+
+ 	' miss on line 1, switch lines 1 and 2
+ 	mov	ptra, himem_tagaddr_2
+	cmp	temp, himem_tag_2 wz
+	mov	himem_tag_2, himem_tag_1	' tag_2 will be most recently used
+	mov	himem_tagaddr_2, himem_tagaddr_1
+	mov	himem_tag_1, temp
+	mov	himem_tagaddr_1, ptra
  if_nz	jmp	#flash_cache_miss
+
 flash_cache_hit
 	and	himem_addr, #$ff
 	add	himem_addr, ptra	' add flash cache offset
@@ -76,7 +84,6 @@ flash_cache_hit
  	ret
 	
 flash_cache_miss
-	wrlong	temp, pa	' update flash tag
 #ifdef DEBUG_ENGINE
 	mov	uart_char, #"*"
 	call	#ser_tx
