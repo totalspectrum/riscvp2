@@ -118,6 +118,7 @@ typedef struct _counter64 {
 #define _waitms(ms) _csr_write(_MILLIS_CSR, ms)
 
 #define _getcnt() _cnt()
+#define _getms()  _csr_read(_MILLIS_CSR)
 
 // NOTE:
 // CUSTOM0 opcode is 0x0b (2<<2)+3
