@@ -26,13 +26,18 @@ CON
 '' NOTE: if you want to increase cache to more than 64K you will have to
 '' modify the alignment; we only have 12 bits for cache offset, and align
 '' to a 16 byte (4 bit) boundary
-' WARNING: although 64K cache should theoretically work, in practice there
-' seems to be an issue with caches over 32K in size
 
 '#define CACHE_SIZE 8192
-#define CACHE_SIZE 32768
+'#define CACHE_SIZE 32768
+'#define CACHE_SIZE 65536
 '#define TOTAL_SIZE 32768
 '#define TOTAL_SIZE 65536
+
+#ifdef USE_HIMEM
+#define CACHE_SIZE 65536
+#else
+#define TOTAL_SIZE 32768
+#endif
 
 '' enable a second set of tags in HUB
 #define LVL2_CACHE_TAGS lvl2_tags
