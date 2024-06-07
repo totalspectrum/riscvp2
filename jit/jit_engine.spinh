@@ -83,10 +83,10 @@ jit_trampoline_set_pc
 		mov	cache_ptrb, ptrb wc
 		bitc	cache_ptrb, #19		' set bit 19 based on himem bit (FIXME HACK to deal with cache having only 20 bit addresses)
 		and	cache_ptrb, jit_loc_mask
-		mov    jit_instr, cache_ptrb
+		mov	jit_instr, cache_ptrb
 #else
 		and	ptrb, jit_loc_mask	' sanitize address
-		mov    jit_instr, ptrb
+		mov	jit_instr, ptrb
 #endif		
 #ifdef USE_DISASM
 		call	#hub_print_newpc
@@ -97,9 +97,9 @@ jit_trampoline_set_pc
 		'' significant. If you know that ptrb is aligned differently,
 		'' you should shift and mask
 #ifdef CACHE_IGNORE_BITS		
-		shr    jit_instr, #CACHE_IGNORE_BITS			' divide by cache tag size
+		shr	jit_instr, #CACHE_IGNORE_BITS			' divide by cache tag size
 #endif		
-		and    jit_instr, #CACHE_TAG_SIZE-1
+		and	jit_instr, #CACHE_TAG_SIZE-1
 		rdlut	jit_temp, jit_instr		' fetch cache data
 		mov	jit_orig_cachepc, jit_temp	' save a copy
 		and	jit_temp, jit_loc_mask
@@ -221,17 +221,17 @@ real_cache_miss
 		call	#hub_print_cachemiss
 #endif
 
+#ifdef CACHE_OFFSET_ALIGN
+    		' align jit_cachepc on a valid boundary
+    		add	jit_cachepc, #CACHE_OFFSET_ALIGN-1
+		andn	jit_cachepc, #CACHE_OFFSET_ALIGN-1
+#endif		
 		' if the cache is full, flush it
 		mov	jit_temp2, jit_top_of_cache_mem
 		sub	jit_temp2, jit_cachepc wcz
 
     if_be	call	#jit_reinit_cache
 
-#ifdef CACHE_OFFSET_ALIGN
-    		' align jit_cachepc on a valid boundary
-    		add	jit_cachepc, #CACHE_OFFSET_ALIGN-1
-		andn	jit_cachepc, #CACHE_OFFSET_ALIGN-1
-#endif		
 		mov	jit_orig_cachepc, jit_cachepc	' save the starting cachepc
 		' update cache tag
 #ifdef LVL2_CACHE_TAGS
