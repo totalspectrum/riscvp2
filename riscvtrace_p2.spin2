@@ -888,10 +888,15 @@ millis_write_csr
 .loop		waitx  temp
 		djnz   pb, #.loop		
 		ret
-		
+
+'
+' writing to this register writes a hex word to output
+' useful for debugging
+'
 uart_status_write_csr
-	_ret_	mov	pb, #0
-	
+		mov	uart_num, pb
+		jmp	#ser_hex
+
 uart_status_read_csr
 		mov	pb, uart_head
 		sub	pb, uart_tail
@@ -2759,7 +2764,7 @@ syscall_exit
 		cogstop	temp
 
 		'' x10 == pointer to timeval struct
-		''   32 bits time_t
+		''   64 bits time_t
 		''   32 bits microseconds
 syscall_gettimeofday
 		getct	dest wc
@@ -2794,9 +2799,9 @@ syscall_clkset
 syscall_memset
 		mov	ptra, x10	' first parameter is address
 		mov	pa, x11		' second parameter is byte
-		mov	pb, x12		' third is size
+		mov	temp2, x12		' third is size
 .loop		wrbyte	pa, ptra++
-		djnz	pb, #.loop
+		djnz	temp2, #.loop
 		ret
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''

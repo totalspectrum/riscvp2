@@ -159,6 +159,12 @@ memset:
 	ecall
 	ret
 
+	.globl	_gettimeofday
+_gettimeofday:
+	li	x17, 169
+	ecall
+	ret
+
 	.data
 _heap_ptr:	
 	.long	0
