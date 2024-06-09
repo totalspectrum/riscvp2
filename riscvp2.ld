@@ -82,7 +82,15 @@ SECTIONS
   {
     KEEP (*(SORT_NONE(.init)))
   } > REGION_TEXT
-
+  .fini           :
+  {
+    KEEP (*(SORT_NONE(.fini)))
+  } > REGION_TEXT
+  .plt            :
+  {
+    *(.plt)
+    *(.iplt)
+  } > REGION_TEXT
   .rodata         :
   {
     *(.plt)
@@ -99,10 +107,26 @@ SECTIONS
   .data           :
   {
     __DATA_BEGIN__ = .;
-    *(.eh_frame)
-    *(.init_array .fini_array)
     *(.data .data.* .gnu.linkonce.d.*)
     SORT(CONSTRUCTORS)
+  } > REGION_DATA
+  .eh_frame      :
+  {
+    KEEP (*(.eh_frame)) *(.eh_frame.*)
+  } > REGION_DATA
+  .init_array    :
+  {
+    PROVIDE_HIDDEN (__init_array_start = .);
+    KEEP (*(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.ctors.*)))
+    KEEP (*(.init_array EXCLUDE_FILE (*crtbegin.o *crtbegin?.o *crtend.o *crtend?.o ) .ctors))
+    PROVIDE_HIDDEN (__init_array_end = .);
+  } > REGION_DATA
+  .fini_array    :
+  {
+    PROVIDE_HIDDEN (__fini_array_start = .);
+    KEEP (*(SORT_BY_INIT_PRIORITY(.fini_array.*) SORT_BY_INIT_PRIORITY(.dtors.*)))
+    KEEP (*(.fini_array EXCLUDE_FILE (*crtbegin.o *crtbegin?.o *crtend.o *crtend?.o ) .dtors))
+    PROVIDE_HIDDEN (__fini_array_end = .);
   } > REGION_DATA
   .got            : { *(.got.plt) *(.igot.plt) *(.got) *(.igot) } > REGION_DATA
   /* We want the small data sections together, so single-instruction offsets

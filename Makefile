@@ -28,9 +28,10 @@ CC=$(BINPREFIX)gcc $(ARCH)
 CXX=$(BINPREFIX)g++ $(ARCH)
 
 #
-# build 2 versions of the trace code:
+# build 3 versions of the trace code:
 #   p2trace.bin: normal version with 32KB cache
 #   p2lut.bin:   compact version with cache in LUT
+#   p2flash.bin: version that can run code from flash
 #
 
 P2SRCS=riscvtrace_p2.spin2 jit/jit_engine.spinh jit/util_serial.spin2 Double.spin2 jit/util_flash.spin2
@@ -42,6 +43,8 @@ default:
 	@echo "make install       -- install P2 files in RISC-V toolchain"
 	@echo "make hello.binary  -- make C demo"
 	@echo "make hello-c++.binary -- make C++ demo"
+	@echo "make MODE=_flash hello.elf  -- make C demo for flash"
+	@echo "make MODE=_flash hello-c++.elf -- make C++ demo for flash"
 
 #
 # install: make everything and copy to the toolchain
@@ -96,13 +99,13 @@ p2flash.bin: $(P2SRCS)
 OPT ?= -Os
 
 hello.elf: hello.c
-	$(CC) -T riscvp2.ld -specs=nano.specs $(OPT) -o $@ $<
+	$(CC) -T riscvp2$(MODE).ld -specs=nano.specs $(OPT) -o $@ $<
 
 hello.binary: hello.elf
 	$(BINPREFIX)objcopy -O binary $< $@
 
 hello-c++.elf: hello.cc
-	$(CXX) -T riscvp2.ld -specs=nano.specs $(OPT) -o $@ $<
+	$(CXX) -T riscvp2$(MODE).ld -specs=nano.specs $(OPT) -o $@ $<
 
 hello-c++.binary: hello-c++.elf
 	$(BINPREFIX)objcopy -O binary $< $@
