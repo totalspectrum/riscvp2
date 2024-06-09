@@ -1,5 +1,6 @@
 /* Default linker script, for normal executables */
-/* modified to link to 0x0 and remove include P2 rv32imc emulator */
+/* modified to link to 0x0 and include P2 rv32imc emulator */
+/* further modified to simplify */
 /* Copyright (C) 2014-2019 Free Software Foundation, Inc.
    Copying and distribution of this script, with or without modification,
    are permitted in any medium without royalty provided the copyright
@@ -20,150 +21,18 @@ MEMORY
   HIMEM : ORIGIN = 0x80080000, LENGTH = 512K
 }
 
+REGION_ALIAS("REGION_TEXT", HIMEM);
+REGION_ALIAS("REGION_RODATA", RAM);
+REGION_ALIAS("REGION_DATA", RAM);
+REGION_ALIAS("REGION_BSS", RAM);
+
+/* the stuff below should be the same for all */
 SECTIONS
 {
-  .jitinterp ORIGIN(RAM) :
-  {
-	KEEP(*(.jitkernel))
-	KEEP(*(.jittext))
-  } > RAM
-  .info :
-  {
-	*(.interp)
-  	*(.note.gnu.build-id)
-  	*(.hash)
-  	*(.gnu.hash)
-  	*(.dynsym)
-  	*(.dynstr)
-  	*(.gnu.version)
-  	*(.gnu.version_d)
-  	*(.gnu.version_r)
-  } > RAM
-  .rela.init      : { *(.rela.init) } > RAM
-  .rela.text      : { *(.rela.text .rela.text.* .rela.gnu.linkonce.t.*) } > RAM
-  .rela.fini      : { *(.rela.fini) } > RAM
-  .rela.rodata    : { *(.rela.rodata .rela.rodata.* .rela.gnu.linkonce.r.*) } > RAM
-  .rela.data.rel.ro   : { *(.rela.data.rel.ro .rela.data.rel.ro.* .rela.gnu.linkonce.d.rel.ro.*) } > RAM
-  .rela.data      : { *(.rela.data .rela.data.* .rela.gnu.linkonce.d.*) } > RAM
-  .rela.tdata	  : { *(.rela.tdata .rela.tdata.* .rela.gnu.linkonce.td.*) } > RAM
-  .rela.tbss	  : { *(.rela.tbss .rela.tbss.* .rela.gnu.linkonce.tb.*) } > RAM
-  .rela.ctors     : { *(.rela.ctors) } > RAM
-  .rela.dtors     : { *(.rela.dtors) } > RAM
-  .rela.got       : { *(.rela.got) } > RAM
-  .rela.sdata     : { *(.rela.sdata .rela.sdata.* .rela.gnu.linkonce.s.*) } > RAM
-  .rela.sbss      : { *(.rela.sbss .rela.sbss.* .rela.gnu.linkonce.sb.*) } > RAM
-  .rela.sdata2    : { *(.rela.sdata2 .rela.sdata2.* .rela.gnu.linkonce.s2.*) } > RAM
-  .rela.sbss2     : { *(.rela.sbss2 .rela.sbss2.* .rela.gnu.linkonce.sb2.*) } > RAM
-  .rela.bss       : { *(.rela.bss .rela.bss.* .rela.gnu.linkonce.b.*) } > RAM
-  .rela.iplt      :
-    {
-      PROVIDE_HIDDEN (__rela_iplt_start = .);
-      *(.rela.iplt)
-      PROVIDE_HIDDEN (__rela_iplt_end = .);
-    } > RAM
-  .rela.plt       :
-    {
-      *(.rela.plt)
-    } > RAM
-  .init           :
-  {
-    KEEP (*(SORT_NONE(.init)))
-  } > RAM
-  .plt            : { *(.plt) } > RAM
-  .iplt           : { *(.iplt) } > RAM
-  .rodata         : { *(.rodata .rodata.* .gnu.linkonce.r.*) } > RAM
-  .rodata1        : { *(.rodata1) } > RAM
-  .sdata2         :
-  {
-    *(.sdata2 .sdata2.* .gnu.linkonce.s2.*)
-  } > RAM
-  .sbss2          : { *(.sbss2 .sbss2.* .gnu.linkonce.sb2.*) } > RAM
-  .eh_frame_hdr   : { *(.eh_frame_hdr) *(.eh_frame_entry .eh_frame_entry.*) } > RAM
-  .eh_frame       : ONLY_IF_RO { KEEP (*(.eh_frame)) *(.eh_frame.*) } > RAM
-  .gcc_except_table   : ONLY_IF_RO { *(.gcc_except_table .gcc_except_table.*) } > RAM
-  .gnu_extab   : ONLY_IF_RO { *(.gnu_extab*) } > RAM
-  /* Exception handling  */
-  .eh_frame       : ONLY_IF_RW { KEEP (*(.eh_frame)) *(.eh_frame.*) } > RAM
-  .gnu_extab      : ONLY_IF_RW { *(.gnu_extab) } > RAM
-  .gcc_except_table   : ONLY_IF_RW { *(.gcc_except_table .gcc_except_table.*) } > RAM
-  .exception_ranges   : ONLY_IF_RW { *(.exception_ranges*) } > RAM
-  /* Thread Local Storage sections  */
-  .tdata	  :
-   {
-     PROVIDE_HIDDEN (__tdata_start = .);
-     *(.tdata .tdata.* .gnu.linkonce.td.*)
-   } > RAM
-  .tbss		  : { *(.tbss .tbss.* .gnu.linkonce.tb.*) *(.tcommon) } > RAM
-  .preinit_array    :
-  {
-    PROVIDE_HIDDEN (__preinit_array_start = .);
-    KEEP (*(.preinit_array))
-    PROVIDE_HIDDEN (__preinit_array_end = .);
-  } > RAM
-  .init_array    :
-  {
-    PROVIDE_HIDDEN (__init_array_start = .);
-    KEEP (*(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.ctors.*)))
-    KEEP (*(.init_array EXCLUDE_FILE (*crtbegin.o *crtbegin?.o *crtend.o *crtend?.o ) .ctors))
-    PROVIDE_HIDDEN (__init_array_end = .);
-  } > RAM
-  .fini_array    :
-  {
-    PROVIDE_HIDDEN (__fini_array_start = .);
-    KEEP (*(SORT_BY_INIT_PRIORITY(.fini_array.*) SORT_BY_INIT_PRIORITY(.dtors.*)))
-    KEEP (*(.fini_array EXCLUDE_FILE (*crtbegin.o *crtbegin?.o *crtend.o *crtend?.o ) .dtors))
-    PROVIDE_HIDDEN (__fini_array_end = .);
-  } > RAM
-  .jcr            : { KEEP (*(.jcr)) } > RAM
-  .data.rel.ro : { *(.data.rel.ro.local* .gnu.linkonce.d.rel.ro.local.*) *(.data.rel.ro .data.rel.ro.* .gnu.linkonce.d.rel.ro.*) } > RAM
-  .dynamic        : { *(.dynamic) } > RAM
-  .data           :
-  {
-    __DATA_BEGIN__ = .;
-    *(.data .data.* .gnu.linkonce.d.*)
-    SORT(CONSTRUCTORS)
-  } > RAM
-  .data1          : { *(.data1) } > RAM
-  .got            : { *(.got.plt) *(.igot.plt) *(.got) *(.igot) } > RAM
-  /* We want the small data sections together, so single-instruction offsets
-     can access them all, and initialized data all before uninitialized, so
-     we can shorten the on-disk segment size.  */
-  .sdata          :
-  {
-    __SDATA_BEGIN__ = .;
-    *(.srodata.cst16) *(.srodata.cst8) *(.srodata.cst4) *(.srodata.cst2) *(.srodata .srodata.*)
-    *(.sdata .sdata.* .gnu.linkonce.s.*)
-    _edata = .; PROVIDE (edata = .);
-  } > RAM
-  .sbss           :
-  {
-    __bss_start = .;
-    *(.dynsbss)
-    *(.sbss .sbss.* .gnu.linkonce.sb.*)
-    *(.scommon)
-  } > RAM
-  .bss            :
-  {
-   *(.dynbss)
-   *(.bss .bss.* .gnu.linkonce.b.*)
-   *(COMMON)
-   /* Align here to ensure that the .bss section occupies space up to
-      _end.  Align after .bss to ensure correct alignment even if the
-      .bss section disappears because there are no input sections.
-      FIXME: Why do we need it? When there is no .bss section, we do not
-      pad the .data section.  */
-   . = ALIGN(. != 0 ? 32 / 8 : 1);
-  } > RAM
-  . = ALIGN(32 / 8);
-  . = SEGMENT_START("ldata-segment", .);
-  . = ALIGN(32 / 8);
-  __BSS_END__ = .;
-    __global_pointer$ = MIN(__SDATA_BEGIN__ + 0x800,
-		            MAX(__DATA_BEGIN__ + 0x800, __BSS_END__ - 0x800));
-  _end = .; PROVIDE (end = .);
-
   .text           :
   {
+    KEEP(*(.jitkernel))
+    KEEP(*(.jittext))
     *(.text .stub .text.* .gnu.linkonce.t.*)
     *(.text.unlikely .text.*_unlikely .text.unlikely.*)
     *(.text.exit .text.exit.*)
@@ -171,14 +40,11 @@ SECTIONS
     *(.text.hot .text.hot.*)
     /* .gnu.warning sections are handled specially by elf32.em.  */
     *(.gnu.warning)
+
     PROVIDE (__etext = .);
     PROVIDE (_etext = .);
     PROVIDE (etext = .);
-  } > HIMEM
-  .fini           :
-  {
-    KEEP (*(SORT_NONE(.fini)))
-  } > HIMEM
+  } > REGION_TEXT
   .ctors          :
   {
     /* gcc uses crtbegin.o to find the start of
@@ -199,7 +65,7 @@ SECTIONS
     KEEP (*(EXCLUDE_FILE (*crtend.o *crtend?.o ) .ctors))
     KEEP (*(SORT(.ctors.*)))
     KEEP (*(.ctors))
-  } > HIMEM
+  } > REGION_TEXT
   .dtors          :
   {
     KEEP (*crtbegin.o(.dtors))
@@ -207,7 +73,66 @@ SECTIONS
     KEEP (*(EXCLUDE_FILE (*crtend.o *crtend?.o ) .dtors))
     KEEP (*(SORT(.dtors.*)))
     KEEP (*(.dtors))
-  } > HIMEM
+  } > REGION_TEXT
+  .init           :
+  {
+    KEEP (*(SORT_NONE(.init)))
+  } > REGION_TEXT
+
+  .rodata         :
+  {
+    *(.plt)
+    *(.iplt)
+    *(.rodata .rodata.* .gnu.linkonce.r.*)
+  } > REGION_RODATA
+  
+  /* Thread Local Storage sections  */
+  .tdata	  :
+   {
+     PROVIDE_HIDDEN (__tdata_start = .);
+     *(.tdata .tdata.* .gnu.linkonce.td.*)
+   } > REGION_DATA
+  .data           :
+  {
+    __DATA_BEGIN__ = .;
+    *(.data .data.* .gnu.linkonce.d.*)
+    SORT(CONSTRUCTORS)
+  } > REGION_DATA
+  .got            : { *(.got.plt) *(.igot.plt) *(.got) *(.igot) } > REGION_DATA
+  /* We want the small data sections together, so single-instruction offsets
+     can access them all, and initialized data all before uninitialized, so
+     we can shorten the on-disk segment size.  */
+  .sdata          :
+  {
+    __SDATA_BEGIN__ = .;
+    *(.srodata.cst16) *(.srodata.cst8) *(.srodata.cst4) *(.srodata.cst2) *(.srodata .srodata.*)
+    *(.sdata .sdata.* .gnu.linkonce.s.*)
+    _edata = .; PROVIDE (edata = .);
+  } > REGION_DATA
+  .sbss           :
+  {
+    __bss_start = .;
+    *(.dynsbss)
+    *(.sbss .sbss.* .gnu.linkonce.sb.*)
+    *(.scommon)
+  } > REGION_BSS
+  .bss            :
+  {
+   *(.dynbss)
+   *(.bss .bss.* .gnu.linkonce.b.*)
+   *(COMMON)
+   /* Align here to ensure that the .bss section occupies space up to
+      _end.  Align after .bss to ensure correct alignment even if the
+      .bss section disappears because there are no input sections.
+      FIXME: Why do we need it? When there is no .bss section, we do not
+      pad the .data section.  */
+   . = ALIGN(. != 0 ? 32 / 8 : 1);
+  } > REGION_DATA
+  . = ALIGN(32 / 8);
+  __BSS_END__ = .;
+    __global_pointer$ = MIN(__SDATA_BEGIN__ + 0x800,
+		            MAX(__DATA_BEGIN__ + 0x800, __BSS_END__ - 0x800));
+  _end = .; PROVIDE (end = .);
 
   /* Stabs debugging sections.  */
   .stab          0 : { *(.stab) }
