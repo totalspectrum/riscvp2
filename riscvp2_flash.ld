@@ -21,6 +21,7 @@ MEMORY
   HIMEM : ORIGIN = 0x80080000, LENGTH = 512K
 }
 
+REGION_ALIAS("REGION_JIT", RAM);
 REGION_ALIAS("REGION_TEXT", HIMEM);
 REGION_ALIAS("REGION_RODATA", RAM);
 REGION_ALIAS("REGION_DATA", RAM);
@@ -29,10 +30,13 @@ REGION_ALIAS("REGION_BSS", RAM);
 /* the stuff below should be the same for all */
 SECTIONS
 {
-  .text           :
+  .jit            :
   {
     KEEP(*(.jitkernel))
     KEEP(*(.jittext))
+  } > REGION_JIT  
+  .text           :
+  {
     *(.text .stub .text.* .gnu.linkonce.t.*)
     *(.text.unlikely .text.*_unlikely .text.unlikely.*)
     *(.text.exit .text.exit.*)
@@ -95,6 +99,8 @@ SECTIONS
   .data           :
   {
     __DATA_BEGIN__ = .;
+    *(.eh_frame)
+    *(.init_array .fini_array)
     *(.data .data.* .gnu.linkonce.d.*)
     SORT(CONSTRUCTORS)
   } > REGION_DATA
