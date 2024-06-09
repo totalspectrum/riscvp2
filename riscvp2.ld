@@ -1,5 +1,5 @@
 /* Default linker script, for normal executables */
-/* modified to link to 0x0 and remove include P2 rv32imc emulator */
+/* modified to link to 0x0 and include P2 rv32imac emulator */
 /* Copyright (C) 2014-2019 Free Software Foundation, Inc.
    Copying and distribution of this script, with or without modification,
    are permitted in any medium without royalty provided the copyright
