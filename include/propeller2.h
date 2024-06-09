@@ -232,10 +232,18 @@ typedef struct _counter64 {
         v;                                                  \
     })
 
+#define _rqpin(pin)                                     \
+    ({                                                  \
+        unsigned long v;                                \
+        __asm__ __volatile__ (".insn i CUSTOM_0, 7, %0, -0x800(%1)" \
+                              : "=r"(v) : "r"(pin) );        \
+        v;                                                  \
+    })
+
 #define _akpin(pin)                                     \
     ({                                                  \
         unsigned long v;                                \
-        __asm__ __volatile__ (".insn i CUSTOM_0, 7, x0, -0x800(%0)" \
+        __asm__ __volatile__ (".insn i CUSTOM_0, 7, x0, -0x400(%0)" \
                               : : "r"(pin) );        \
         v;                                                  \
     })
