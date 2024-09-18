@@ -153,8 +153,8 @@ _clkset:
 	ecall
 	ret
 
-	.globl	memset
-memset:
+	.globl	__memset_internal
+__memset_internal:
 	li	x17, 3002
 	ecall
 	ret
