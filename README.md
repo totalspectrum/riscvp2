@@ -45,10 +45,10 @@ Unzip the downloaded file somewhere convenient (lets call it $FOO) and add $FOO/
 
 Now you should be ready to build. To create a P2 compatible ELF file, do:
 ```
-   riscv-none-embed-gcc -T riscvp2.ld -Os -o hello.elf hello.c
+   riscv-none-embed-gcc -march=rv32imac_zicsr -T riscvp2.ld -Os -o hello.elf hello.c
 ```
 
-The `-T riscvp2.ld` says to link for the P2. Other options are as usual for GCC.
+The `-T riscvp2.ld` says to link for the P2. The `-march=` option specifies the RISC-V variant we emulate. Other options are as usual for GCC.
 
 The output file will claim to be a RISC-V ELF file, but at its very beginning will be the P2 JIT compiler, which is P2 code. This may be loaded directly by `loadp2`, e.g.:
 ```
