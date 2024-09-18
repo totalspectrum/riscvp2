@@ -2799,7 +2799,8 @@ syscall_clkset
 syscall_memset
 		mov	ptra, x10	' first parameter is address
 		mov	pa, x11		' second parameter is byte
-		mov	temp2, x12		' third is size
+		mov	temp2, x12 wz	' third is size
+	if_z	ret
 .loop		wrbyte	pa, ptra++
 		djnz	temp2, #.loop
 		ret
