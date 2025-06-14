@@ -10,6 +10,11 @@
 '' dis_temp2
 '' dis_ptr
 ''
+
+' recent flexspin preprocessors are case-insensitive by
+' default, that causes problems here
+#pragma keep_case
+
 #define PRINT_DFLT 0x0
 #define PRINT_AUG  0x1
 #define PRINT_LOC  0x2
