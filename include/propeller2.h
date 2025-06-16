@@ -42,7 +42,7 @@
 ({								\
 	unsigned long __v = (unsigned long)(val);		\
 	__asm__ __volatile__ ("csrw " _X_(csr) ", %0"		\
-			      : : "rK" (__v));			\
+			      : : "r" (__v));			\
 })
 
 // read and then write the CSR (csr = val, return old csr)
@@ -50,7 +50,7 @@
 ({								\
 	unsigned long __v = (unsigned long)(val);		\
 	__asm__ __volatile__ ("csrrw %0, " _X_(csr) ", %1"      \
-			      : "=r" (__v) : "rK" (__v));	\
+			      : "=r" (__v) : "r" (__v));	\
 	__v;							\
 })
 
@@ -59,7 +59,7 @@
 ({								\
 	unsigned long __v = (unsigned long)(val);		\
 	__asm__ __volatile__ ("csrs " _X_(csr) ", %0"		\
-			      : : "rK" (__v));			\
+			      : : "r" (__v));			\
 })
 
 // clear bits in a CSR (does "csr &= ~val"; that is, 1 bits in val
@@ -68,7 +68,7 @@
 ({								\
 	unsigned long __v = (unsigned long)(val);		\
 	__asm__ __volatile__ ("csrc " _X_(csr) ", %0"		\
-			      : : "rK" (__v));			\
+			      : : "r" (__v));			\
 })
 
 /*
